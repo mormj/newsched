@@ -14,9 +14,9 @@
 #include <gnuradio/blocklib/block_callbacks.hpp>
 #include <gnuradio/blocklib/block_work_io.hpp>
 #include <gnuradio/blocklib/io_signature.hpp>
-#include <gnuradio/blocklib/types.hpp>
-#include <gnuradio/blocklib/port.hpp>
 #include <gnuradio/blocklib/parameter.hpp>
+#include <gnuradio/blocklib/port.hpp>
+#include <gnuradio/blocklib/types.hpp>
 #include <memory>
 
 namespace gr {
@@ -43,7 +43,6 @@ enum class work_return_code_t {
  * processing functions.
  *
  */
-
 
 
 class block : public std::enable_shared_from_this<block>
@@ -83,23 +82,26 @@ protected:
 
     parameter_config parameters;
 
-    void add_param(param_base p)
-    {
-        parameters.add(p);
-    }
+    void add_param(param_base p) { parameters.add(p); }
 
     void add_port(port_base p)
     {
-        if (p.port_direction() == port_direction_t::INPUT)
-        {
+        if (p.port_direction() == port_direction_t::INPUT) {
             d_input_ports.push_back(p);
-        }
-        else if (p.port_direction() == port_direction_t::OUTPUT)
-        {
+
+            // update the input_signature
+            if (p.port_type() == port_type_t::STREAM) {
+                d_input_signature = io_signature(sizeof_input_stream_ports());
+            }
+        } else if (p.port_direction() == port_direction_t::OUTPUT) {
             d_output_ports.push_back(p);
+
+            if (p.port_type() == port_type_t::STREAM) {
+                d_output_signature = io_signature(sizeof_output_stream_ports());
+            }
         }
     }
-    void remove_port(const std::string &name);
+    void remove_port(const std::string& name);
 
 public:
     /**
@@ -134,8 +136,43 @@ public:
     io_signature& input_signature() { return d_input_signature; };
     io_signature& output_signature() { return d_output_signature; };
 
-    std::vector<port_base>& input_ports() { return d_input_ports;}
-    std::vector<port_base>& output_ports() { return d_output_ports;}
+    std::vector<port_base>& input_ports() { return d_input_ports; }
+    std::vector<port_base>& output_ports() { return d_output_ports; }
+
+    // std::vector<port_base> input_stream_ports()
+    // {
+    //     std::vector<port_base> result;
+    //     for (auto& p : d_input_ports)
+    //         if (p.port_type() == port_type_t::STREAM)
+    //             result.push_back(p);
+    // }
+    // std::vector<port_base> output_stream_ports()
+    // {
+    //     std::vector<port_base> result;
+    //     for (auto& p : d_output_ports)
+    //         if (p.port_type() == port_type_t::STREAM)
+    //             result.push_back(p);
+    // }
+
+    std::vector<size_t> sizeof_input_stream_ports()
+    {
+        std::vector<size_t> result;
+        for (auto& p : d_input_ports)
+            if (p.port_type() == port_type_t::STREAM)
+                result.push_back(p.data_size());
+
+        return result;
+    }
+
+    std::vector<size_t> sizeof_output_stream_ports()
+    {
+        std::vector<size_t> result;
+        for (auto& p : d_output_ports)
+            if (p.port_type() == port_type_t::STREAM)
+                result.push_back(p.data_size());
+
+        return result;
+    }
 
     std::string& name() { return d_name; };
     std::string& alias() { return d_alias; }
@@ -172,8 +209,8 @@ public:
      *   1. From a message port (automatically created message ports for callbacks)
      *   2. From a callback function (e.g. set_k())
      *   3. RPC call
-     * 
-     * @param params 
+     *
+     * @param params
      */
 
     virtual void on_parameter_change(std::vector<param_change_base> params)

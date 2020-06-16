@@ -15,7 +15,7 @@ int main(int argc, char* argv[])
     std::shared_ptr<blocks::vector_sink_f> snk(new blocks::vector_sink_f());
     // blocks::vector_sink_f snk();
 
-mult->on_parameter_change(std::vector<param_change_base>{param_change<float>(blocks::multiply_const_blk_params::k, 12.0, 0)});
+mult->on_parameter_change(std::vector<param_change_base>{param_change<float>(blocks::multiply_const_ff::params::k, 12.0, 0)});
 
     flowgraph_sptr fg(new flowgraph());
     fg->connect(endpoint(src->base(),0), endpoint(mult->base(),0));

@@ -49,6 +49,7 @@ public:
     std::string name() { return _name; }
     port_type_t port_type() { return _port_type; }
     port_direction_t port_direction() { return _direction; }
+    size_t data_size() { return _data_size; }
 };
 
 template <class T>
