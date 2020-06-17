@@ -21,7 +21,7 @@ vector_sink<T>::vector_sink(unsigned int vlen, const int reserve_items)
     : sync_block("vector_sink"),
       d_vlen(vlen)
 {
-    add_port(port<T>("input",
+    add_port(port<T>::make("input",
                                port_direction_t::INPUT,
                                port_type_t::STREAM,
                                std::vector<size_t>{ vlen }));

@@ -14,11 +14,11 @@ template <>
 multiply_const<float>::multiply_const(float k, size_t vlen)
     : sync_block("multiply_const_ff"), d_k(k), d_vlen(vlen)
 {
-    add_port(port<float>("input",
+    add_port(port<float>::make("input",
                                port_direction_t::INPUT,
                                port_type_t::STREAM,
                                std::vector<size_t>{ vlen }));
-    add_port(port<float>("output",
+    add_port(port<float>::make("output",
                                port_direction_t::OUTPUT,
                                port_type_t::STREAM,
                                std::vector<size_t>{ vlen }));
@@ -52,11 +52,11 @@ template <>
 multiply_const<gr_complex>::multiply_const(gr_complex k, size_t vlen)
     : sync_block("multiply_const_cc"), d_k(k), d_vlen(vlen)
 {
-    add_port(port<gr_complex>("input",
+    add_port(port<gr_complex>::make("input",
                                     port_direction_t::INPUT,
                                     port_type_t::STREAM,
                                     std::vector<size_t>{ vlen }));
-    add_port(port<gr_complex>("output",
+    add_port(port<gr_complex>::make("output",
                                     port_direction_t::OUTPUT,
                                     port_type_t::STREAM,
                                     std::vector<size_t>{ vlen }));
@@ -89,11 +89,11 @@ template <class T>
 multiply_const<T>::multiply_const(T k, size_t vlen)
     : sync_block("multiply_const"), d_k(k), d_vlen(vlen)
 {
-    add_port(port<T>("input",
+    add_port(port<T>::make("input",
                            port_direction_t::INPUT,
                            port_type_t::STREAM,
                            std::vector<size_t>{ vlen }));
-    add_port(port<T>("output",
+    add_port(port<T>::make("output",
                            port_direction_t::OUTPUT,
                            port_type_t::STREAM,
                            std::vector<size_t>{ vlen }));

@@ -11,12 +11,11 @@
 #include <string>
 #include <vector>
 
+#include <gnuradio/blocklib/node.hpp>
 #include <gnuradio/blocklib/block_callbacks.hpp>
 #include <gnuradio/blocklib/block_work_io.hpp>
 #include <gnuradio/blocklib/io_signature.hpp>
 #include <gnuradio/blocklib/parameter.hpp>
-#include <gnuradio/blocklib/port.hpp>
-#include <gnuradio/blocklib/types.hpp>
 #include <memory>
 
 namespace gr {
@@ -45,7 +44,7 @@ enum class work_return_code_t {
  */
 
 
-class block : public std::enable_shared_from_this<block>
+class block : public gr::node, public std::enable_shared_from_this<block>
 {
 public:
     enum vcolor { WHITE, GREY, BLACK };
@@ -56,12 +55,7 @@ private:
     unsigned int d_output_multiple;
 
 protected:
-    std::string d_name;
-    std::string d_alias;
-    io_signature d_input_signature;
-    io_signature d_output_signature;
-    std::vector<port_base> d_input_ports;
-    std::vector<port_base> d_output_ports;
+
     vcolor d_color;
 
     // These are overridden by the derived class
@@ -84,24 +78,7 @@ protected:
 
     void add_param(param_base p) { parameters.add(p); }
 
-    void add_port(port_base p)
-    {
-        if (p.port_direction() == port_direction_t::INPUT) {
-            d_input_ports.push_back(p);
 
-            // update the input_signature
-            if (p.port_type() == port_type_t::STREAM) {
-                d_input_signature = io_signature(sizeof_input_stream_ports());
-            }
-        } else if (p.port_direction() == port_direction_t::OUTPUT) {
-            d_output_ports.push_back(p);
-
-            if (p.port_type() == port_type_t::STREAM) {
-                d_output_signature = io_signature(sizeof_output_stream_ports());
-            }
-        }
-    }
-    void remove_port(const std::string& name);
 
 public:
     /**
@@ -133,50 +110,6 @@ public:
         return d_output_signature_capability;
     }
 
-    io_signature& input_signature() { return d_input_signature; };
-    io_signature& output_signature() { return d_output_signature; };
-
-    std::vector<port_base>& input_ports() { return d_input_ports; }
-    std::vector<port_base>& output_ports() { return d_output_ports; }
-
-    // std::vector<port_base> input_stream_ports()
-    // {
-    //     std::vector<port_base> result;
-    //     for (auto& p : d_input_ports)
-    //         if (p.port_type() == port_type_t::STREAM)
-    //             result.push_back(p);
-    // }
-    // std::vector<port_base> output_stream_ports()
-    // {
-    //     std::vector<port_base> result;
-    //     for (auto& p : d_output_ports)
-    //         if (p.port_type() == port_type_t::STREAM)
-    //             result.push_back(p);
-    // }
-
-    std::vector<size_t> sizeof_input_stream_ports()
-    {
-        std::vector<size_t> result;
-        for (auto& p : d_input_ports)
-            if (p.port_type() == port_type_t::STREAM)
-                result.push_back(p.data_size());
-
-        return result;
-    }
-
-    std::vector<size_t> sizeof_output_stream_ports()
-    {
-        std::vector<size_t> result;
-        for (auto& p : d_output_ports)
-            if (p.port_type() == port_type_t::STREAM)
-                result.push_back(p.data_size());
-
-        return result;
-    }
-
-    std::string& name() { return d_name; };
-    std::string& alias() { return d_alias; }
-    void set_alias(std::string alias) { d_alias = alias; }
     vcolor color() const { return d_color; }
     void set_color(vcolor color) { d_color = color; }
 

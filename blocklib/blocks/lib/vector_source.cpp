@@ -30,7 +30,7 @@ vector_source<T>::vector_source(const std::vector<T>& data,
       d_tags(tags)
 {
 
-    add_port(port<T>("output",
+    add_port(port<T>::make("output",
                                port_direction_t::OUTPUT,
                                port_type_t::STREAM,
                                std::vector<size_t>{ vlen }));

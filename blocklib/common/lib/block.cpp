@@ -4,7 +4,7 @@
 namespace gr {
 block::~block() {}
 block::block(const std::string& name)
-    : d_name(name)
+    : node(name)
 {
 }
 
