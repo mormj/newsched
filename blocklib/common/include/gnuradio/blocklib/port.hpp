@@ -33,6 +33,7 @@ protected:
     // empty dims refers to a scalar, dims=[n] same as vlen=n
     int _multiplicity; // port can be replicated as in grc
     size_t _data_size;
+    size_t _itemsize; // data size across all dims
 
 public:
     typedef std::shared_ptr<port_base> sptr;
@@ -42,7 +43,7 @@ public:
          const param_type_t data_type = param_type_t::CFLOAT,
          //  const std::type_index T
          const port_type_t port_type = port_type_t::STREAM,
-         const std::vector<size_t>& dims = std::vector<size_t>(),
+         const std::vector<size_t>& dims = std::vector<size_t>{1},
          const int multiplicity = 1)
         : _name(name),
         //   _parent(parent),
@@ -54,6 +55,9 @@ public:
     {
         // _type_info = param_type_info(_data_type); // might not be needed
         _data_size = parameter_functions::param_size_info(_data_type);
+        _itemsize = _data_size;
+        for (auto d : _dims)
+            _itemsize *= d;
     }
 
     std::string name() { return _name; }
@@ -64,6 +68,7 @@ public:
     port_type_t type() { return _port_type; }
     port_direction_t direction() { return _direction; }
     size_t data_size() { return _data_size; }
+    size_t itemsize() { return _itemsize; }
 };
 
 typedef port_base::sptr port_sptr;
@@ -98,5 +103,7 @@ public:
     {
     }
 };
+
+typedef std::vector<port_sptr> port_vector_t;
 
 } // namespace gr

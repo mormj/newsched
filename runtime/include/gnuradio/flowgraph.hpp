@@ -12,26 +12,26 @@
 #define INCLUDED_GR_RUNTIME_FLOWGRAPH_H
 
 #include "api.h"
-#include <gnuradio/blocklib/graph.hpp>
 #include <iostream>
+#include <memory>
+
+#include <gnuradio/graph.hpp>
 
 namespace gr {
 
-class flowgraph : graph
+class flowgraph : public graph
 {
 public:
     flowgraph();
     typedef std::shared_ptr<flowgraph> sptr;
     virtual ~flowgraph();
 
-    void start() = 0;
-    void stop() = 0;
-    void wait() = 0;
-
-
+    void start() {};
+    void stop() {};
+    void wait() {};
 };
 
 typedef flowgraph::sptr flowgraph_sptr;
-}
+} // namespace gr
 
 #endif

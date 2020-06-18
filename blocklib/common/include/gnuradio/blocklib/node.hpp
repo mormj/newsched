@@ -50,7 +50,8 @@ protected:
     port_sptr get_port(std::string& name, port_type_t type, port_direction_t direction)
     {
         auto pred = [name, type, direction](port_sptr p) {
-            return (p->type() == type && p->direction() == direction && p->name() == name);
+            return (p->type() == type && p->direction() == direction &&
+                    p->name() == name);
         };
         std::vector<port_sptr>::iterator it =
             std::find_if(std::begin(d_all_ports), std::end(d_all_ports), pred);
@@ -69,7 +70,8 @@ protected:
 
 public:
     node() : d_name("") {}
-    node(const std::string &name) : d_name(name) {}
+    node(const std::string& name) : d_name(name) {}
+    virtual ~node() = default;
     typedef std::shared_ptr<node> sptr;
 
     io_signature& input_signature() { return d_input_signature; };
@@ -78,6 +80,24 @@ public:
     std::vector<port_sptr>& all_ports() { return d_all_ports; }
     std::vector<port_sptr>& input_ports() { return d_input_ports; }
     std::vector<port_sptr>& output_ports() { return d_output_ports; }
+    std::vector<port_sptr> input_stream_ports()
+    {
+        std::vector<port_sptr> result;
+        for (auto& p : d_input_ports)
+            if (p->type() == port_type_t::STREAM)
+                result.push_back(p);
+
+        return result;
+    }
+    std::vector<port_sptr> output_stream_ports()
+    {
+        std::vector<port_sptr> result;
+        for (auto& p : d_output_ports)
+            if (p->type() == port_type_t::STREAM)
+                result.push_back(p);
+
+        return result;
+    }
 
     std::vector<size_t> sizeof_input_stream_ports()
     {
@@ -105,5 +125,6 @@ public:
 };
 
 typedef node::sptr node_sptr;
+typedef std::vector<node_sptr> node_vector_t;
 
 } // namespace gr

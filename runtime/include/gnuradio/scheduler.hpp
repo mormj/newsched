@@ -1,10 +1,10 @@
-#include <gnuradio/flowgraph.hpp>
+#include <gnuradio/flat_graph.hpp>
 namespace gr {
 class scheduler
 {
 
 public:
-    scheduler(flowgraph_sptr fg) {};
+    scheduler(flat_graph_sptr fg) {};
     virtual ~scheduler();
     virtual void start() = 0;
     virtual void stop() = 0;
