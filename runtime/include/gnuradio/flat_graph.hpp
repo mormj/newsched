@@ -37,10 +37,20 @@ class flat_graph : public graph
 public:
     void clear();
     flat_graph();
-    typedef std::shared_ptr<flat_graph> sptr;
+    // typedef std::shared_ptr<flat_graph> sptr;
     virtual ~flat_graph();
 
     block_vector_t calc_used_blocks();
+    static std::shared_ptr<flat_graph> make_flat(graph_sptr g)
+    {
+        // for now assume it is already flat, and just cast things
+        std::shared_ptr<flat_graph> fg = std::shared_ptr<flat_graph>(new flat_graph());
+        for (auto e : g->edges()) {
+            fg->connect(e.src(),e.dst());
+        }
+
+        return fg;
+    }
 
     edge find_edge(port_sptr port)
     {

@@ -32,17 +32,6 @@ flat_graph::flat_graph() {}
 
 flat_graph::~flat_graph() {}
 
-template <class T>
-static std::vector<T> unique_vector(std::vector<T> v)
-{
-    std::vector<T> result;
-    std::insert_iterator<std::vector<T>> inserter(result, result.begin());
-
-    sort(v.begin(), v.end());
-    unique_copy(v.begin(), v.end(), inserter);
-    return result;
-}
-
 
 // void flat_graph::validate()
 // {
@@ -409,5 +398,6 @@ void flat_graph::topological_dfs_visit(block_sptr block, block_vector_t& output)
     output.push_back(block);
 }
 
+typedef std::shared_ptr<flat_graph> flat_graph_sptr;
 
 } /* namespace gr */

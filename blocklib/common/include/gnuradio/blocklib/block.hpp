@@ -66,8 +66,8 @@ protected:
     virtual bool start() { return true; };
     virtual bool stop() { return true; };
 
-    void set_relative_rate(double relative_rate);
-    void set_relative_rate(unsigned int numerator, unsigned int denominator);
+    void set_relative_rate(double relative_rate) {};
+    void set_relative_rate(unsigned int numerator, unsigned int denominator) {};
 
     //   tag_propagation_policy_t tag_propagation_policy();
     //   void set_tag_propagation_policy(tag_propagation_policy_t p);
@@ -88,7 +88,7 @@ public:
      */
     block(const std::string& name);
 
-    ~block();
+    virtual ~block() {};
     typedef std::shared_ptr<block> sptr;
     sptr base() { return shared_from_this(); }
 

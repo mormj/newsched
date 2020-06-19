@@ -10,15 +10,22 @@ namespace schedulers {
 // This is a terrible scheduler just to pass data through the blocks
 // and demonstrate the pluggable scheduler concept
 
-class scheduler_simplestream : scheduler
+class scheduler_simplestream : public scheduler
 {
 public:
     static const int s_fixed_buf_size = 32768;
     static const int s_min_items_to_process = 1;
     static constexpr int s_max_buf_items = s_fixed_buf_size / 2;
 
-    scheduler_simplestream(flat_graph_sptr fg) : scheduler(fg), d_fg(fg)
+    scheduler_simplestream()
+        : scheduler() {}
+    ~scheduler_simplestream(){
+
+    };
+
+    void initialize(flat_graph_sptr fg)
     {
+        d_fg = fg;
         // Create a fixed size buffer for each of the edges
         // TODO - this should be a replaceable buffer class
 
@@ -41,22 +48,17 @@ public:
             unsigned int num_input_ports = input_ports.size();
             unsigned int num_output_ports = output_ports.size();
 
-            for (auto p : input_ports)
-            {
+            for (auto p : input_ports) {
                 edge ed = d_fg->find_edge(p);
                 d_block_buffers[p] = d_edge_buffers[ed.identifier()];
             }
 
-            for (auto p : output_ports)
-            {
+            for (auto p : output_ports) {
                 edge ed = d_fg->find_edge(p);
                 d_block_buffers[p] = d_edge_buffers[ed.identifier()];
             }
         }
-    };
-    ~scheduler_simplestream(){
-
-    };
+    }
 
     void start() { d_thread = std::thread(thread_body, this); }
 
@@ -77,9 +79,9 @@ private:
     std::map<std::string, simplebuffer::sptr> d_edge_buffers;
     // std::map<block_sptr, std::map<block::io, std::map<int, simplebuffer::sptr>>>
     //     d_block_buffers; // store the block buffers
-    //std::map<port_sptr, std::vector<simplebuffer::sptr>>  // TODO: multiple edges from one output port
-    std::map<port_sptr, simplebuffer::sptr>
-        d_block_buffers; // store the block buffers
+    // std::map<port_sptr, std::vector<simplebuffer::sptr>>  // TODO: multiple edges from
+    // one output port
+    std::map<port_sptr, simplebuffer::sptr> d_block_buffers; // store the block buffers
     std::thread d_thread;
     bool d_thread_stopped = false;
 
@@ -95,8 +97,7 @@ private:
                 // for each input port of the block
                 bool ready = true;
                 for (auto p : b->input_stream_ports()) {
-                    simplebuffer::sptr p_buf =
-                        top->d_block_buffers[p];
+                    simplebuffer::sptr p_buf = top->d_block_buffers[p];
 
                     if (p_buf->size() < s_min_items_to_process) {
                         ready = false;
@@ -110,8 +111,7 @@ private:
 
                 // for each output port of the block
                 for (auto p : b->output_stream_ports()) {
-                    simplebuffer::sptr p_buf =
-                        top->d_block_buffers[p];
+                    simplebuffer::sptr p_buf = top->d_block_buffers[p];
 
                     if (p_buf->size() >= s_max_buf_items) {
                         ready = false;
@@ -127,19 +127,17 @@ private:
                 if (ready) {
                     work_return_code_t ret = b->do_work(work_input, work_output);
                     if (ret == work_return_code_t::WORK_OK) {
-                        int i=0;
+                        int i = 0;
                         for (auto p : b->input_stream_ports()) {
-                            simplebuffer::sptr p_buf =
-                                top->d_block_buffers[p];
+                            simplebuffer::sptr p_buf = top->d_block_buffers[p];
 
                             p_buf->post_read(work_input[i].n_consumed);
                             i++;
                         }
 
-                        i=0;
+                        i = 0;
                         for (auto p : b->output_stream_ports()) {
-                            simplebuffer::sptr p_buf =
-                                top->d_block_buffers[p];
+                            simplebuffer::sptr p_buf = top->d_block_buffers[p];
 
                             p_buf->post_write(work_output[i].n_produced);
                             i++;
