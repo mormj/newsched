@@ -2,7 +2,7 @@
 #include <iostream>
 #include <thread>
 
-#include <gnuradio/blocklib/blocks/dummy.hpp>
+#include <gnuradio/blocklib/blocks/multiply_const_blk.hpp>
 #include <gnuradio/blocklib/blocks/throttle.hpp>
 #include <gnuradio/blocklib/blocks/vector_sink.hpp>
 #include <gnuradio/blocklib/blocks/vector_source.hpp>
@@ -23,32 +23,25 @@ int main(int argc, char* argv[])
     // blocks::vector_sink_f snk();
 
     flowgraph_sptr fg(new flowgraph());
-    fg->connect(src->base(), 0, throttle->base(), 0);
-    fg->connect(throttle->base(), 0, mult1->base(), 0);
-    fg->connect(mult1->base(), 0, mult2->base(), 0);
-    fg->connect(mult2->base(), 0, snk->base(), 0);
+    fg->connect(src, 0, throttle, 0);
+    fg->connect(throttle, 0, mult1, 0);
+    fg->connect(mult1, 0, mult2, 0);
+    fg->connect(mult2, 0, snk, 0);
 
     std::shared_ptr<schedulers::scheduler_simplestream> sched1(
         new schedulers::scheduler_simplestream());
     std::shared_ptr<schedulers::scheduler_simplestream> sched2(
         new schedulers::scheduler_simplestream());
 
-    fg->add_scheduler(sched1->base());
-    fg->add_scheduler(sched2->base());
+    fg->add_scheduler(sched1);
+    fg->add_scheduler(sched2);
 
-    std::vector<std::tuple<block_sptr, scheduler_sptr>> partitions
-    {
-        { src, sched1 }, 
-        { throttle, sched1 }, 
-        { mult1, sched1 }, 
-        { mult2, sched2 },
-        { snk, sched2 }
-    }
+    partition_conf_vec partitions{ { sched1, { src, throttle, mult1 } },
+                                   { sched2, { mult2, snk } } };
 
-    fg->partion(partitions)
+    fg->partition(partitions);
     fg->validate();
 
     fg->start();
     fg->wait();
-
 }
