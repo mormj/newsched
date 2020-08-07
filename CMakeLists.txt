@@ -59,6 +59,6 @@ add_subdirectory(deps/catch/include)
 add_subdirectory(blocklib)
 add_subdirectory(runtime)
 add_subdirectory(schedulers)
-
+add_subdirectory(bench)
 add_subdirectory(docs)
 

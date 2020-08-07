@@ -1,5 +1,6 @@
 add_library(gnuradio-blocklib-blocks SHARED
   fanout.cpp
+  head.cpp
   multiply_const.cpp
   throttle.cpp
   vector_sink.cpp

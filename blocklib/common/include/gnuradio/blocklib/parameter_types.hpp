@@ -10,6 +10,7 @@
 namespace gr {
 
 enum class param_type_t {
+    UNTYPED,
     FLOAT,
     DOUBLE,
     CFLOAT,
