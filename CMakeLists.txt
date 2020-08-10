@@ -55,6 +55,7 @@ set(LIBVER "${modulargr_VERSION_MAJOR}.${modulargr_VERSION_MINOR}")
 SET(GR_INCLUDE_DIR     include CACHE PATH "Path to install header files")
 
 set(BOOST_REQUIRED_COMPONENTS
+program_options
 )
 set(GR_BOOST_MIN_VERSION "1.65")
 find_package(Boost ${GR_BOOST_MIN_VERSION} COMPONENTS ${BOOST_REQUIRED_COMPONENTS})

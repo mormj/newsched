@@ -7,88 +7,54 @@
  * SPDX-License-Identifier: GPL-3.0-or-later
  *
  */
-
-#ifndef INCLUDED_VECTOR_SINK_HPP
-#define INCLUDED_VECTOR_SINK_HPP
+#pragma once
 
 #include <gnuradio/blocklib/sync_block.hpp>
 
-#include <cstdint>
-#include <mutex>
 namespace gr {
 namespace blocks {
 
-
-template <class T>
-class vector_sink : virtual public sync_block
+class null_sink : virtual public sync_block
 {
 
 public:
-    enum params : uint32_t { id_vlen, id_data, id_tags, num_params };
-    typedef std::shared_ptr<vector_sink> sptr;
+    enum params : uint32_t { id_itemsize, id_nports, num_params };
+    typedef std::shared_ptr<null_sink> sptr;
 
-    static sptr make(const size_t vlen = 1, const size_t reserve_items = 1024)
+    static sptr make(const size_t itemsize, const size_t nports=1)
     {
-        auto ptr = std::make_shared<vector_sink>(vector_sink(vlen, reserve_items));
+        auto ptr = std::make_shared<null_sink>(null_sink(itemsize, nports));
 
-        ptr->add_port(port<T>::make("input",
-                                    port_direction_t::INPUT,
-                                    port_type_t::STREAM,
-                                    std::vector<size_t>{ vlen }));
+        for (int i = 0; i < nports; i++) {
+            ptr->add_port(untyped_port::make("input" + std::to_string(i),
+                                             port_direction_t::INPUT,
+                                             itemsize,
+                                             port_type_t::STREAM));
+        }
 
         ptr->add_param(param<size_t>::make(
-            vector_sink::params::id_vlen, "vlen", vlen, &(ptr->_vlen)));
-        ptr->add_param(param<std::vector<T>>::make(
-            vector_sink::params::id_data, "data", std::vector<T>{}, &(ptr->_data)));
-        ptr->add_param(param<std::vector<tag_t>>::make(
-            vector_sink::params::id_tags, "tags", std::vector<tag_t>{}, &(ptr->_tags)));
+            null_sink::params::id_itemsize, "itemsize", itemsize, &(ptr->_itemsize)));
+        ptr->add_param(param<size_t>::make(
+            null_sink::params::id_nports, "nports", nports, &(ptr->_nports)));
 
         return ptr;
     }
 
-    vector_sink(const size_t vlen = 1, const size_t reserve_items = 1024);
-    // ~vector_sink() {};
+    null_sink(const size_t itemsize, const size_t nports)
+        : sync_block("null_sink"), _itemsize(itemsize), _nports(nports){};
+    // ~null_sink() {};
 
     work_return_code_t work(std::vector<block_work_input>& work_input,
-                            std::vector<block_work_output>& work_output);
-
-    std::any handle_reset(std::vector<std::any> args)
+                            std::vector<block_work_output>& work_output)
     {
-        _tags.clear();
-        _data.clear();
-
-        return std::any();
+        return work_return_code_t::WORK_OK;
     }
 
-    //! Clear the data and tags containers.
-    void reset();
-    std::vector<T> data()
-    {
-        return request_parameter_query<std::vector<T>>(params::id_data);
-    }
-
-    // since _data is changed inside work(), we must catch and update the current value
-    virtual void on_parameter_query(param_action_sptr action)
-    {
-        if (action->id() == id_data) {
-            auto param = parameters.get(action->id());
-            action->set_any_value(std::any_cast<std::vector<T>>(_data));
-        } else {
-            block::on_parameter_query(action);
-        }
-    }
 
 private:
-    std::vector<T> _data;
-    std::vector<tag_t> _tags;
-    size_t _vlen;
+    size_t _itemsize;
+    size_t _nports;
 };
-typedef vector_sink<std::uint8_t> vector_sink_b;
-typedef vector_sink<std::int16_t> vector_sink_s;
-typedef vector_sink<std::int32_t> vector_sink_i;
-typedef vector_sink<float> vector_sink_f;
-typedef vector_sink<gr_complex> vector_sink_c;
+
 } /* namespace blocks */
 } /* namespace gr */
-
-#endif
