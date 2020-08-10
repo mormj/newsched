@@ -10,6 +10,7 @@
 #include <gnuradio/domain_adapter_shm.hpp>
 #include <gnuradio/flowgraph.hpp>
 #include <gnuradio/schedulers/simplestream/scheduler_simplestream.hpp>
+#include <gnuradio/realtime.hpp>
 
 using namespace gr;
 
@@ -17,12 +18,6 @@ int main(int argc, char* argv[])
 {
     float k = 1.0;
     int nsamps = 50000000;
-    std::vector<float> input_data(nsamps);
-    std::vector<float> expected_output(nsamps);
-    for (int i = 0; i < nsamps; i++) {
-        input_data[i] = i;
-        expected_output[i] = i * k;
-    }
 
     {
         // auto src = blocks::vector_source_f::make(input_data, false);
@@ -44,6 +39,10 @@ int main(int argc, char* argv[])
         fg->validate();
 
         auto t1 = std::chrono::steady_clock::now();
+
+        if(gr::enable_realtime_scheduling() != gr::rt_status_t::RT_OK)
+            std::cout << "Unable to enable realtime scheduling " << std::endl;
+        
         fg->start();
         fg->wait();
 
@@ -51,9 +50,5 @@ int main(int argc, char* argv[])
         std::chrono::duration<double, std::milli> fp_ms = t2 - t1;
         std::cout << "non-Domain Adapter flowgraph took: " << fp_ms.count() << std::endl;
 
-        auto vec = snk->data();
-        std::cout << (vec == expected_output) << std::endl;
-
-        std::cout << std::endl;
     }
 }

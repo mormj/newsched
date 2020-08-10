@@ -34,6 +34,17 @@ endif()
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
+########################################################################
+# Incorporate CMake function/macros overloading.
+########################################################################
+
+include(CMakeOverloads)
+
+########################################################################
+# Compiler specific setup
+########################################################################
+include(GrMiscUtils) #compiler flag check
+
 # The version number.
 set(modulargr_VERSION_MAJOR 0)
 set(modulargr_VERSION_MINOR 0)
