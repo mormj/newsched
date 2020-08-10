@@ -20,6 +20,7 @@
 #include <algorithm>
 
 #include <iostream>
+#include <gnuradio/logging.hpp>
 
 #if defined(HAVE_PTHREAD_SETSCHEDPARAM) || defined(HAVE_SCHED_SETSCHEDULER)
 #include <pthread.h>

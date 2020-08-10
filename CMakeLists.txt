@@ -67,6 +67,9 @@ find_package(ZeroMQ REQUIRED)
 
 enable_testing()
 
+# Dependencies
+add_subdirectory(deps/rapidyaml ryml)
+
 add_subdirectory(deps/catch/include)
 add_subdirectory(blocklib)
 add_subdirectory(runtime)

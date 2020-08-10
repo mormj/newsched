@@ -20,7 +20,8 @@ target_include_directories(gnuradio-runtime
 target_link_libraries(gnuradio-runtime 
 Volk::volk
 ZeroMQ::ZeroMQ
-gnuradio-blocklib-blocks)
+gnuradio-blocklib-blocks
+ryml)
 
 # ZMQ 4.3.1 deprecated the send and recv with references.  Ignore for now // FIXME
 target_compile_options(gnuradio-runtime PRIVATE -Wno-deprecated-declarations)
