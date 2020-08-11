@@ -1,6 +1,7 @@
 add_library(gnuradio-runtime SHARED
   domain_adapter_zmq.cpp
-  flat_graph.cpp   
+  flat_graph.cpp
+  logging.cpp
   realtime.cpp
   scheduler.cpp
   )
@@ -17,9 +18,6 @@ target_include_directories(gnuradio-runtime
   ${CMAKE_CURRENT_SOURCE_DIR}
   ${YAML_CPP_INCLUDE_DIR}
   )
-
-message(STATUS "%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%")
-message(STATUS ${YAML_CPP_LIBRARIES})
 
 target_link_libraries(gnuradio-runtime
 Volk::volk
