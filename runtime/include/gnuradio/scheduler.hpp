@@ -35,8 +35,8 @@ public:
     scheduler(const std::string& name)
     {
         _name = name;
-        _logger = logging::get_logger("default");
-        _debug_logger = logging::get_logger("debug");
+        _logger = logging::get_logger(name, "default");
+        _debug_logger = logging::get_logger(name, "debug");
     };
     virtual ~scheduler();
     std::shared_ptr<scheduler> base() { return shared_from_this(); }

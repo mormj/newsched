@@ -9,8 +9,8 @@ namespace gr {
 // block::~block() {}
 block::block(const std::string& name) : node(name) {
 
-    _logger = logging::get_logger("default");
-    _debug_logger = logging::get_logger("debug");
+    _logger = logging::get_logger(name, "default");
+    _debug_logger = logging::get_logger(name, "debug");
 } 
 
 
