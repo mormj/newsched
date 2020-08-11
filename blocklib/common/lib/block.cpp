@@ -7,7 +7,11 @@
 
 namespace gr {
 // block::~block() {}
-block::block(const std::string& name) : node(name) {} 
+block::block(const std::string& name) : node(name) {
+
+    _logger = logging::get_logger("default");
+    _debug_logger = logging::get_logger("debug");
+} 
 
 
 template <class T>

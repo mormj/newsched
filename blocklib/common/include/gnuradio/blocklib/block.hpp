@@ -22,6 +22,9 @@
 #include <gnuradio/blocklib/node.hpp>
 #include <gnuradio/blocklib/parameter.hpp>
 
+// Dependence back to gnuradio/runtime -- FIXME
+#include <gnuradio/logging.hpp>
+
 namespace gr {
 
 class scheduler;
@@ -60,6 +63,9 @@ private:
 
     std::map<std::string, block_callback_fcn>
         _callback_function_map; // callback_function_map["mult0"]["do_something"](x,y,z)
+
+    logger_sptr _logger;
+    logger_sptr _debug_logger;
 
 protected:
     // These are overridden by the derived class

@@ -1,11 +1,12 @@
 #pragma once
 
-#include <ryml.hpp>
-#include <ryml_std.hpp> // include this before any other ryml header
 
+#include <yaml-cpp/yaml.h>
 #include <cstdio>  //P_tmpdir (maybe)
 #include <cstdlib> //getenv
 #include <filesystem>
+#include <fstream>
+#include <iostream>
 
 namespace fs = std::filesystem;
 
@@ -14,14 +15,22 @@ namespace gr {
 
 class prefs
 {
-    public:
+public:
     static prefs& get_instance()
     {
         static prefs p;
         return p;
     }
 
-    private:
+    static YAML::Node get_section(const std::string& name)
+    {
+        return get_instance()._config[name];
+    }
+
+
+private:
+    YAML::Node _config;
+
     prefs()
     {
         std::vector<std::string> fnames;
@@ -30,7 +39,8 @@ class prefs
         // Find if there is a ~/.gnuradio/config.conf file
         fs::path userconf = fs::path(userconf_path()) / "config.yml";
         if (fs::exists(userconf)) {
-            fnames.push_back(userconf.string());
+            // fnames.push_back(userconf.string());
+            _config = YAML::LoadFile(userconf.string());
         }
     }
 

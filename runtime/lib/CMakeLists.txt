@@ -15,13 +15,18 @@ target_include_directories(gnuradio-runtime
   ${CMAKE_SOURCE_DIR}/blocklib/common/include
   PRIVATE
   ${CMAKE_CURRENT_SOURCE_DIR}
+  ${YAML_CPP_INCLUDE_DIR}
   )
 
-target_link_libraries(gnuradio-runtime 
+message(STATUS "%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%")
+message(STATUS ${YAML_CPP_LIBRARIES})
+
+target_link_libraries(gnuradio-runtime
 Volk::volk
 ZeroMQ::ZeroMQ
 gnuradio-blocklib-blocks
-ryml)
+${YAML_CPP_LIBRARIES}
+)
 
 # ZMQ 4.3.1 deprecated the send and recv with references.  Ignore for now // FIXME
 target_compile_options(gnuradio-runtime PRIVATE -Wno-deprecated-declarations)

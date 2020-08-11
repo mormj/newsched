@@ -145,8 +145,9 @@ private:
     static void thread_body(scheduler_simplestream* top)
     {
         int num_empty = 0;
-	bool work_done = false;
-	top->set_state(scheduler_state::WORKING);
+        bool work_done = false;
+        top->set_state(scheduler_state::WORKING);
+        gr_log_info(top->_logger,"starting thread");
         while (!top->d_thread_stopped) {
             // std::cout << top->name() << ":while" << std::endl;
 
@@ -363,7 +364,7 @@ private:
                     // std::this_thread::sleep_for(std::chrono::milliseconds(10));
 
                     // if (num_empty >= 10) {
-                        top->set_state(scheduler_state::FLUSHED);
+                    top->set_state(scheduler_state::FLUSHED);
                     // }
                 }
             }
@@ -374,10 +375,10 @@ private:
             }
         }
 
+        gr_log_info(top->_logger,"exiting");
         std::cout << "... exiting" << std::endl;
         std::cout << top->name() << ":" << std::endl;
         ;
-
     }
 };
 } // namespace schedulers

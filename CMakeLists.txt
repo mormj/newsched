@@ -64,11 +64,10 @@ find_package(Volk REQUIRED)
 
 #find_package(Python3)
 find_package(ZeroMQ REQUIRED)
+find_package(yaml-cpp REQUIRED)
 
 enable_testing()
 
-# Dependencies
-add_subdirectory(deps/rapidyaml ryml)
 
 add_subdirectory(deps/catch/include)
 add_subdirectory(blocklib)
