@@ -120,7 +120,7 @@ public:
 
         // Instantiate the loggers when the alias is set
         _logger = logging::get_logger(alias, "default");
-        _debug_logger = logging::get_logger(alias, "debug");
+        _debug_logger = logging::get_logger(alias+"_dbg", "debug");
     }
 
     port_sptr get_port(std::string& name, port_type_t type, port_direction_t direction)

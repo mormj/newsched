@@ -376,9 +376,6 @@ private:
         }
 
         gr_log_info(top->_logger,"exiting");
-        std::cout << "... exiting" << std::endl;
-        std::cout << top->name() << ":" << std::endl;
-        ;
     }
 };
 } // namespace schedulers

@@ -97,18 +97,13 @@ rt_status_t enable_realtime_scheduling(rt_sched_param p)
     memset(&param, 0, sizeof(param));
     param.sched_priority = pri;
     int result = pthread_setschedparam(pthread_self(), policy, &param);
-    // std::cout << result << std::endl;
     if (result != 0) {
         if (result == EPERM) // N.B., return value, not errno
             return RT_NO_PRIVS;
         else {
-            // gr::logger_ptr logger, debug_logger;
-            // gr::configure_default_loggers(logger, debug_logger, "realtime_impl");
-            // GR_LOG_ERROR(
-            //     logger,
-            //     boost::format(
-            //         "pthread_setschedparam: failed to set real time priority: %s") %
-            //         strerror(result));
+            auto logger = logging::get_logger("realtime");
+            gr_log_error(logger, "pthread_setschedparam: failed to set real time priority: {}", strerror(result));
+
             return RT_OTHER_ERROR;
         }
     }

@@ -85,7 +85,7 @@ class logging
 {
 public:
     static logger_sptr get_logger(const std::string& logger_name,
-                                  const std::string& config_name);
+                                  const std::string& config_name="default");
 };
 
 inline void set_level(logger_sptr logger, logging_level_t log_level)
@@ -98,23 +98,52 @@ inline void set_level(logger_sptr logger, logging_level_t log_level)
 // }
 
 
-inline void gr_log_debug(logger_sptr logger, const std::string& msg)
+template<typename... Args>
+inline void gr_log_debug(logger_sptr logger, const Args &... args)
 {
-    logger->debug(msg);
+    if (logger) {
+        logger->debug(args...);
+    }
 }
-inline void gr_log_info(logger_sptr logger, const std::string& msg) { logger->info(msg); }
-inline void gr_log_trace(logger_sptr logger, const std::string& msg)
+
+template<typename... Args>
+inline void gr_log_info(logger_sptr logger, const Args &... args)
 {
-    logger->trace(msg);
+    if (logger) {
+        logger->info(args...);
+    }
 }
-inline void gr_log_warn(logger_sptr logger, const std::string& msg) { logger->warn(msg); }
-inline void gr_log_error(logger_sptr logger, const std::string& msg)
+
+template<typename... Args>
+inline void gr_log_trace(logger_sptr logger, const Args &... args)
 {
-    logger->error(msg);
+    if (logger) {
+        logger->trace(args...);
+    }
 }
-inline void gr_log_critical(logger_sptr logger, const std::string& msg)
+
+template<typename... Args>
+inline void gr_log_warn(logger_sptr logger, const Args &... args)
 {
-    logger->critical(msg);
+    if (logger) {
+        logger->warn(args...);
+    }
+}
+
+template<typename... Args>
+inline void gr_log_error(logger_sptr logger, const Args &... args)
+{
+    if (logger) {
+        logger->error(args...);
+    }
+}
+
+template<typename... Args>
+inline void gr_log_critical(logger_sptr logger, const Args &... args)
+{
+    if (logger) {
+        logger->critical(args...);
+    }
 }
 
 

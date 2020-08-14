@@ -42,7 +42,7 @@ private:
 
 
 public:
-    flowgraph(){};
+    flowgraph(){set_alias("flowgraph");};
     typedef std::shared_ptr<flowgraph> sptr;
     virtual ~flowgraph(){};
     void set_scheduler(scheduler_sptr sched)
@@ -203,12 +203,14 @@ public:
     }
     void validate()
     {
+        gr_log_trace(_debug_logger, "validate()");
         d_flat_graph = flat_graph::make_flat(base());
         for (auto sched : d_schedulers)
             sched->initialize(d_flat_graph);
     }
     void start()
     {
+        gr_log_trace(_debug_logger, "start()");
         // Need thread synchronization for the schedulers - to know when they're done and
         // signal the other schedulers that might be connected
 
@@ -224,8 +226,8 @@ public:
             while (true) {
                 std::unique_lock<std::mutex> lk{ _sched_sync.sync_mutex };
                 _sched_sync.sync_cv.wait(lk);
-                std::cout << "monitor: notified --> " << _sched_sync.id << " / "
-                          << (int)_sched_sync.state << std::endl;
+                
+                gr_log_debug(_debug_logger,"monitor: notified --> {} / {}",_sched_sync.id, (int)_sched_sync.state);
 
                 if (_sched_sync.state ==
                     scheduler_state::DONE) // Notify the other threads to wrap it up
@@ -263,12 +265,14 @@ public:
     }
     void stop()
     {
+        gr_log_trace(_debug_logger, "stop()");
         for (auto s : d_schedulers) {
             s->stop();
         }
     }
     void wait()
     {
+        gr_log_trace(_debug_logger, "wait()");
         for (auto s : d_schedulers) {
             s->wait();
         }

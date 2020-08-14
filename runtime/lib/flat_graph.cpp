@@ -26,58 +26,10 @@ namespace gr {
 
 #define FLOWGRAPH_DEBUG 0
 
-// edge::~edge() {}
-
-// flat_graph::flat_graph() {}
 
 flat_graph::~flat_graph() {}
 
 
-// void flat_graph::validate()
-// {
-//     d_blocks = calc_used_blocks();
-
-//     for (auto &b : d_blocks)
-//     {
-//         std::vector<int> used_ports;
-//         int ninputs, noutputs;
-
-//         if (FLOWGRAPH_DEBUG)
-//             std::cout << "Validating block: " << b << std::endl;
-
-//         used_ports = calc_used_ports(b, true); // inputs
-//         ninputs = used_ports.size();
-//         check_contiguity(b, used_ports, true); // inputs
-
-//         used_ports = calc_used_ports(b, false); // outputs
-//         noutputs = used_ports.size();
-//         check_contiguity(b, used_ports, false); // outputs
-
-//         // if (!((*p)->check_topology(ninputs, noutputs))) {
-//         //     std::stringstream msg;
-//         //     msg << "check topology failed on " << (*p) << " using ninputs=" <<
-//         ninputs
-//         //         << ", noutputs=" << noutputs;
-//         //     throw std::runtime_error(msg.str());
-//         // }
-
-//         // update the block alias
-//         std::map<std::string, int> name_count;
-//         // look in the map, see how many of that name exist
-//         // make the alias name + count;
-//         // increment the map
-//         int cnt;
-//         if (name_count.find(b->name()) == name_count.end()) {
-//             name_count[b->name()] = cnt = 0;
-//         } else {
-//             cnt = name_count[b->name()];
-//         }
-//         b->set_alias(b->name() + std::to_string(cnt));
-//         name_count[b->name()] = cnt+1;
-
-
-//     }
-// }
 
 void flat_graph::clear()
 {
