@@ -63,8 +63,8 @@ public:
         // {
         //     return false;
         // }
-        // _buf_mutex.lock();
-        std::scoped_lock guard(_buf_mutex);
+        _buf_mutex.lock();
+        // std::scoped_lock guard(_buf_mutex);
 
         info.ptr = read_ptr();
         info.n_items = size();
@@ -79,8 +79,8 @@ public:
         // {
         //     return false;
         // }
-        // _buf_mutex.lock();
-        std::scoped_lock guard(_buf_mutex);
+        _buf_mutex.lock();
+        // std::scoped_lock guard(_buf_mutex);
 
         info.ptr = write_ptr();
         info.n_items = capacity() - size();
@@ -90,8 +90,8 @@ public:
     }
 
     virtual void cancel() 
-    {} 
-    // { _buf_mutex.unlock(); }
+    // {} 
+    { _buf_mutex.unlock(); }
 
     virtual void post_read(int num_items)
     {
@@ -102,11 +102,11 @@ public:
         if (_read_index >= _buf_size) {
             _read_index -= _buf_size;
         }
-        // _buf_mutex.unlock();
+        _buf_mutex.unlock();
     }
     virtual void post_write(int num_items)
     {
-        std::scoped_lock guard(_buf_mutex);
+        // std::scoped_lock guard(_buf_mutex);
 
         unsigned int bytes_written = num_items * _item_size;
         int wi1 = _write_index;
@@ -128,7 +128,7 @@ public:
             _write_index -= _buf_size;
         }
 
-        // _buf_mutex.unlock();
+        _buf_mutex.unlock();
     }
 
     virtual void copy_items(std::shared_ptr<buffer> from, int nitems)

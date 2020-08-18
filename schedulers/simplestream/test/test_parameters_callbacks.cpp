@@ -17,7 +17,7 @@ int main(int argc, char* argv[])
         blocks::multiply_const_ff::make(100.0); // create a block that multiplies by 17
     auto src = blocks::vector_source_f::make(
         std::vector<float>{ 1.0, 2.0, 3.0, 4.0, 5.0 }, true);
-    auto throttle = blocks::throttle::make(sizeof(float), 100);
+    auto throttle = blocks::throttle::make(sizeof(float), 10000);
     auto snk = blocks::vector_sink_f::make();
     // blocks::vector_sink_f snk();
 
@@ -32,7 +32,7 @@ int main(int argc, char* argv[])
 
 
     std::shared_ptr<schedulers::scheduler_simplestream> sched(
-        new schedulers::scheduler_simplestream());
+        new schedulers::scheduler_simplestream("sched1", 8192));
     fg->set_scheduler(sched->base());
 
     fg->validate();

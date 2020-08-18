@@ -36,7 +36,7 @@ public:
     {
         _name = name;
         _logger = logging::get_logger(name, "default");
-        _debug_logger = logging::get_logger(name, "debug");
+        _debug_logger = logging::get_logger(name + "_dbg", "debug");
     };
     virtual ~scheduler();
     std::shared_ptr<scheduler> base() { return shared_from_this(); }
@@ -49,6 +49,7 @@ public:
                                          param_action_sptr param_action,
                                          param_action_complete_fcn cb_when_complete)
     {
+        gr_log_debug(_debug_logger,"request_parameter_query: {}", block_alias);
         param_query_queue.emplace(param_action_base_with_callback{
             block_alias, param_action, cb_when_complete });
     }
