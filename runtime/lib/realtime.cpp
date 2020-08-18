@@ -101,7 +101,7 @@ rt_status_t enable_realtime_scheduling(rt_sched_param p)
         if (result == EPERM) // N.B., return value, not errno
             return RT_NO_PRIVS;
         else {
-            auto logger = logging::get_logger("realtime");
+            auto logger = logging::get_logger("realtime", "default");
             gr_log_error(logger, "pthread_setschedparam: failed to set real time priority: {}", strerror(result));
 
             return RT_OTHER_ERROR;

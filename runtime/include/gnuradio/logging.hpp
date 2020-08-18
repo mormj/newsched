@@ -85,7 +85,7 @@ class logging
 {
 public:
     static logger_sptr get_logger(const std::string& logger_name,
-                                  const std::string& config_name="default");
+                                  const std::string& config_name);
 };
 
 inline void set_level(logger_sptr logger, logging_level_t log_level)

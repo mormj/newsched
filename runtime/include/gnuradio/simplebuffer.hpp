@@ -38,6 +38,10 @@ public:
         return sptr(new simplebuffer(num_items, item_size));
     }
 
+    // This is how GR3.x does it, but perhaps just because the buffer actions are
+    // distributed throughout the code
+    std::mutex* mutex() { return &_buf_mutex; }
+
     int size()
     { // in number of items
         int w = _write_index;
@@ -52,14 +56,15 @@ public:
     void* read_ptr() { return (void*)&_buffer[_read_index]; }
     void* write_ptr() { return (void*)&_buffer[_write_index]; }
 
-    virtual bool read_info(buffer_info_t &info)
+    virtual bool read_info(buffer_info_t& info)
     {
         // Need to lock the buffer to freeze the current state
-        if (!_buf_mutex.try_lock())
-        {
-            return false;
-        }
+        // if (!_buf_mutex.try_lock())
+        // {
+        //     return false;
+        // }
         // _buf_mutex.lock();
+        std::scoped_lock guard(_buf_mutex);
 
         info.ptr = read_ptr();
         info.n_items = size();
@@ -70,11 +75,12 @@ public:
 
     virtual bool write_info(buffer_info_t& info)
     {
-        if (!_buf_mutex.try_lock())
-        {
-            return false;
-        }
+        // if (!_buf_mutex.try_lock())
+        // {
+        //     return false;
+        // }
         // _buf_mutex.lock();
+        std::scoped_lock guard(_buf_mutex);
 
         info.ptr = write_ptr();
         info.n_items = capacity() - size();
@@ -83,19 +89,23 @@ public:
         return true;
     }
 
-    virtual void cancel() { _buf_mutex.unlock(); }
+    virtual void cancel() {} //{ _buf_mutex.unlock(); }
 
     virtual void post_read(int num_items)
     {
+        std::scoped_lock guard(_buf_mutex);
+
         // advance the read pointer
         _read_index += num_items * _item_size;
         if (_read_index >= _buf_size) {
             _read_index -= _buf_size;
         }
-        _buf_mutex.unlock();
+        // _buf_mutex.unlock();
     }
     virtual void post_write(int num_items)
     {
+        std::scoped_lock guard(_buf_mutex);
+
         unsigned int bytes_written = num_items * _item_size;
         int wi1 = _write_index;
         int wi2 = _write_index + _buf_size;
@@ -116,11 +126,13 @@ public:
             _write_index -= _buf_size;
         }
 
-        _buf_mutex.unlock();
+        // _buf_mutex.unlock();
     }
 
     virtual void copy_items(std::shared_ptr<buffer> from, int nitems)
     {
+        std::scoped_lock guard(_buf_mutex);
+
         memcpy(write_ptr(), from->write_ptr(), nitems * _item_size);
     }
 };

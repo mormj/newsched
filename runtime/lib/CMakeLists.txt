@@ -24,6 +24,7 @@ Volk::volk
 ZeroMQ::ZeroMQ
 gnuradio-blocklib-blocks
 ${YAML_CPP_LIBRARIES}
+spdlog::spdlog
 )
 
 # ZMQ 4.3.1 deprecated the send and recv with references.  Ignore for now // FIXME
