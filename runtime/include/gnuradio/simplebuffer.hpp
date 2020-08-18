@@ -89,11 +89,13 @@ public:
         return true;
     }
 
-    virtual void cancel() {} //{ _buf_mutex.unlock(); }
+    virtual void cancel() 
+    {} 
+    // { _buf_mutex.unlock(); }
 
     virtual void post_read(int num_items)
     {
-        std::scoped_lock guard(_buf_mutex);
+        // std::scoped_lock guard(_buf_mutex);
 
         // advance the read pointer
         _read_index += num_items * _item_size;
@@ -131,7 +133,7 @@ public:
 
     virtual void copy_items(std::shared_ptr<buffer> from, int nitems)
     {
-        std::scoped_lock guard(_buf_mutex);
+        // std::scoped_lock guard(_buf_mutex);
 
         memcpy(write_ptr(), from->write_ptr(), nitems * _item_size);
     }
