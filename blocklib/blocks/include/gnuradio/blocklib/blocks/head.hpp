@@ -2,7 +2,7 @@
 #include <string.h>
 
 
-#include <gnuradio/blocklib/sync_block.hpp>
+#include <gnuradio/sync_block.hpp>
 
 namespace gr {
 namespace blocks {

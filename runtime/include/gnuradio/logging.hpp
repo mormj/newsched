@@ -46,145 +46,46 @@ struct logger_config {
     logging_level_t level;
     std::string pattern;
 
-    logger_config(YAML::Node config)
-    {
-        _config = config;
-        id = config["id"].as<std::string>();
-        pattern = config["pattern"].as<std::string>();
-
-        {
-            auto str = config["type"].as<std::string>();
-            auto it = logger_type_t_table.find(str);
-            if (it != logger_type_t_table.end()) {
-                type = it->second;
-            } else {
-                type = logger_type_t::none;
-            }
-        }
-
-        {
-            auto str = config["level"].as<std::string>();
-            auto it = logging_level_t_table.find(str);
-            if (it != logging_level_t_table.end()) {
-                level = it->second;
-            } else {
-                level = logging_level_t::off;
-            }
-        }
-    }
+    logger_config(YAML::Node config);
 
     // unnecessary
-    static std::shared_ptr<logger_config> parse(YAML::Node config)
-    {
-        return std::make_shared<logger_config>(logger_config(config));
-    }
+    static std::shared_ptr<logger_config> parse(YAML::Node config);
 };
 
 struct logger_console_config : logger_config {
     logger_console_type console_type;
 
-    logger_console_config(YAML::Node config) : logger_config(config)
-    {
-        // type = logger_console_type_table[config["console_type"].as<std::string>()];
-        auto str = config["console_type"].as<std::string>();
-        auto it = logger_console_type_table.find(str);
-        if (it != logger_console_type_table.end()) {
-            console_type = it->second;
-        }
-    }
-
+    logger_console_config(YAML::Node config);
 
     static logger_sptr make(const std::string& name,
-                     std::shared_ptr<logger_config> logger_config)
-    {
-        auto cfg = logger_console_config(logger_config->_config);
-
-        if (cfg.console_type == logger_console_type::stdout) {
-            return spdlog::stdout_color_mt(name);
-        } else {
-            return spdlog::stderr_color_mt(name);
-        }
-    }
+                            std::shared_ptr<logger_config> logger_config);
 };
 
 struct logger_basic_config : logger_config {
     std::string filename;
 
-    logger_basic_config(YAML::Node config) : logger_config(config)
-    {
-        filename = config["filename"].as<std::string>();
-    }
+    logger_basic_config(YAML::Node config);
 
     static logger_sptr make(const std::string& name,
-                            std::shared_ptr<logger_config> logger_config)
-    {
-        auto cfg = logger_basic_config(logger_config->_config);
-
-        return spdlog::basic_logger_mt(name, cfg.filename);
-    }
+                            std::shared_ptr<logger_config> logger_config);
 };
 
 class logging_config
 // follows the structure of the yaml
 {
 public:
-    logging_config() { parse_from_prefs(); }
+    logging_config();
     std::vector<std::shared_ptr<logger_config>> loggers;
 
 private:
-    void parse_from_prefs()
-    {
-        auto node = prefs::get_section("logging");
-        for (auto info : node) {
-            loggers.push_back(logger_config::parse(info));
-        }
-    }
+    void parse_from_prefs();
 };
 
 class logging
 {
 public:
     static logger_sptr get_logger(const std::string& logger_name,
-                                  const std::string& config_name)
-    {
-
-        // Use the spdlog global registry
-        logger_sptr requested_logger = spdlog::get(logger_name);
-        if (requested_logger) {
-            return requested_logger;
-        }
-
-
-        // Find the configuration for this named logger
-        logging_config cfg;
-        auto it = std::find_if(
-            cfg.loggers.begin(),
-            cfg.loggers.end(),
-            [&](std::shared_ptr<logger_config> lg) { return lg->id == config_name; });
-
-        // Found the configuration, now create the logger
-        if (it != cfg.loggers.end()) {
-            switch ((*it)->type) {
-            case logger_type_t::basic:
-                requested_logger = logger_basic_config::make(logger_name, *it);
-                break;
-            case logger_type_t::console:
-                requested_logger = logger_console_config::make(logger_name, *it);
-                break;
-            }
-            if (requested_logger) {
-                requested_logger->set_level((*it)->level);
-                requested_logger->set_pattern((*it)->pattern);
-            }
-
-        } else {
-            std::cout << "Logger: " << config_name << " not found in configuration"
-                      << std::endl;
-        }
-
-
-        return requested_logger;
-    }
+                                  const std::string& config_name);
 };
 
 inline void set_level(logger_sptr logger, logging_level_t log_level)
@@ -197,48 +98,48 @@ inline void set_level(logger_sptr logger, logging_level_t log_level)
 // }
 
 
-template <typename... Args>
-inline void gr_log_debug(logger_sptr logger, const Args&... args)
+template<typename... Args>
+inline void gr_log_debug(logger_sptr logger, const Args &... args)
 {
     if (logger) {
         logger->debug(args...);
     }
 }
 
-template <typename... Args>
-inline void gr_log_info(logger_sptr logger, const Args&... args)
+template<typename... Args>
+inline void gr_log_info(logger_sptr logger, const Args &... args)
 {
     if (logger) {
         logger->info(args...);
     }
 }
 
-template <typename... Args>
-inline void gr_log_trace(logger_sptr logger, const Args&... args)
+template<typename... Args>
+inline void gr_log_trace(logger_sptr logger, const Args &... args)
 {
     if (logger) {
         logger->trace(args...);
     }
 }
 
-template <typename... Args>
-inline void gr_log_warn(logger_sptr logger, const Args&... args)
+template<typename... Args>
+inline void gr_log_warn(logger_sptr logger, const Args &... args)
 {
     if (logger) {
         logger->warn(args...);
     }
 }
 
-template <typename... Args>
-inline void gr_log_error(logger_sptr logger, const Args&... args)
+template<typename... Args>
+inline void gr_log_error(logger_sptr logger, const Args &... args)
 {
     if (logger) {
         logger->error(args...);
     }
 }
 
-template <typename... Args>
-inline void gr_log_critical(logger_sptr logger, const Args&... args)
+template<typename... Args>
+inline void gr_log_critical(logger_sptr logger, const Args &... args)
 {
     if (logger) {
         logger->critical(args...);

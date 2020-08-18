@@ -1,7 +1,7 @@
 #ifndef GR_PARAMETER_TYPES_HPP
 #define GR_PARAMETER_TYPES_HPP
 
-#include <gnuradio/blocklib/types.hpp>
+#include <gnuradio/types.hpp>
 #include <map>
 #include <string>
 #include <typeindex>

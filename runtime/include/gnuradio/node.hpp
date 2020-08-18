@@ -13,8 +13,8 @@
 
 #include <algorithm>
 
-#include <gnuradio/blocklib/io_signature.hpp>
-#include <gnuradio/blocklib/port.hpp>
+#include <gnuradio/io_signature.hpp>
+#include <gnuradio/port.hpp>
 #include <gnuradio/logging.hpp>
 
 namespace gr {

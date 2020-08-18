@@ -1,8 +1,6 @@
 
-#include <gnuradio/blocklib/block.hpp>
+#include <gnuradio/block.hpp>
 
-// FIXME - would like to avoid dependence on scheduler
-// conditionally include this
 #include <gnuradio/scheduler.hpp>
 
 namespace gr {

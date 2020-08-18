@@ -11,7 +11,7 @@
 #ifndef INCLUDED_GR_THROTTLE_H
 #define INCLUDED_GR_THROTTLE_H
 
-#include <gnuradio/blocklib/sync_block.hpp>
+#include <gnuradio/sync_block.hpp>
 #include <chrono>
 
 namespace gr {

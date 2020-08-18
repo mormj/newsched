@@ -1,9 +1,14 @@
 add_library(gnuradio-runtime SHARED
+  # parameter.cpp
+  parameter_types.cpp
+  block.cpp
+  sync_block.cpp
   domain_adapter_zmq.cpp
   flat_graph.cpp
-  # logging.cpp
+  logging.cpp
   realtime.cpp
   scheduler.cpp
+
   )
 set_target_properties(gnuradio-runtime PROPERTIES
             CXX_STANDARD 17
@@ -13,17 +18,16 @@ target_include_directories(gnuradio-runtime
   PUBLIC
   $<INSTALL_INTERFACE:include>
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/../include>
-  ${CMAKE_SOURCE_DIR}/blocklib/common/include
   PRIVATE
   ${CMAKE_CURRENT_SOURCE_DIR}
   ${YAML_CPP_INCLUDE_DIR}
   )
 
 target_link_libraries(gnuradio-runtime
+PUBLIC
 Volk::volk
 spdlog::spdlog
 ZeroMQ::ZeroMQ
-gnuradio-blocklib-blocks
 ${YAML_CPP_LIBRARIES}
 
 )

@@ -10,8 +10,6 @@
 #include <mutex>
 #include <thread>
 
-// FIXME - would like to avoid dependence on scheduler
-// conditionally include this
 #include <gnuradio/scheduler.hpp>
 
 namespace gr {

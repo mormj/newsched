@@ -21,17 +21,15 @@ ${PROJECT_SOURCE_DIR}/runtime/include
 
 
 target_link_libraries(bm_basic 
-    gnuradio-blocklib-common
-    gnuradio-blocklib-blocks
     gnuradio-runtime
+    gnuradio-blocklib-blocks
     gnuradio-scheduler-simplestream
     Boost::program_options
 )
 
 target_link_libraries(bm_domain_adapt 
-    gnuradio-blocklib-common
-    gnuradio-blocklib-blocks
     gnuradio-runtime
+    gnuradio-blocklib-blocks
     gnuradio-scheduler-simplestream
     Boost::program_options
 )

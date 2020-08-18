@@ -1,6 +1,6 @@
 #pragma once
 
-#include <gnuradio/blocklib/parameter_types.hpp>
+#include <gnuradio/parameter_types.hpp>
 #include <string>
 #include <typeindex>
 #include <typeinfo>

@@ -88,47 +88,47 @@ void logging_config::parse_from_prefs()
 }
 
 
-// logger_sptr logging::get_logger(const std::string& logger_name,
-//                                 const std::string& config_name)
-// {
+logger_sptr logging::get_logger(const std::string& logger_name,
+                                const std::string& config_name)
+{
 
-//     // Use the spdlog global registry
-//     logger_sptr requested_logger = spdlog::get(logger_name);
-//     if (requested_logger) {
-//         return requested_logger;
-//     }
-
-
-//     // Find the configuration for this named logger
-//     logging_config cfg;
-//     auto it = std::find_if(
-//         cfg.loggers.begin(), cfg.loggers.end(), [&](std::shared_ptr<logger_config> lg) {
-//             return lg->id == config_name;
-//         });
-
-//     // Found the configuration, now create the logger
-//     if (it != cfg.loggers.end()) {
-//         switch ((*it)->type) {
-//         case logger_type_t::basic:
-//             requested_logger = logger_basic_config::make(logger_name, *it);
-//             break;
-//         case logger_type_t::console:
-//             requested_logger = logger_console_config::make(logger_name, *it);
-//             break;
-//         }
-//         if (requested_logger) {
-//             requested_logger->set_level((*it)->level);
-//             requested_logger->set_pattern((*it)->pattern);
-//         }
-
-//     } else {
-//         std::cout << "Logger: " << config_name << " not found in configuration"
-//                   << std::endl;
-//     }
+    // Use the spdlog global registry
+    logger_sptr requested_logger = spdlog::get(logger_name);
+    if (requested_logger) {
+        return requested_logger;
+    }
 
 
-//     return requested_logger;
-// }
+    // Find the configuration for this named logger
+    logging_config cfg;
+    auto it = std::find_if(
+        cfg.loggers.begin(), cfg.loggers.end(), [&](std::shared_ptr<logger_config> lg) {
+            return lg->id == config_name;
+        });
+
+    // Found the configuration, now create the logger
+    if (it != cfg.loggers.end()) {
+        switch ((*it)->type) {
+        case logger_type_t::basic:
+            requested_logger = logger_basic_config::make(logger_name, *it);
+            break;
+        case logger_type_t::console:
+            requested_logger = logger_console_config::make(logger_name, *it);
+            break;
+        }
+        if (requested_logger) {
+            requested_logger->set_level((*it)->level);
+            requested_logger->set_pattern((*it)->pattern);
+        }
+
+    } else {
+        std::cout << "Logger: " << config_name << " not found in configuration"
+                  << std::endl;
+    }
+
+
+    return requested_logger;
+}
 
 
 } // namespace gr
