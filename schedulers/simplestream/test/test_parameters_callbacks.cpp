@@ -52,10 +52,10 @@ int main(int argc, char* argv[])
         mult->do_a_bunch_of_things(
             1, 2.0, std::vector<gr_complex>{ gr_complex(4.0, 5.0) });
 
-        if (std::chrono::steady_clock::now() - start > std::chrono::seconds(200))
+        if (std::chrono::steady_clock::now() - start > std::chrono::seconds(3))
             break;
 
-        std::this_thread::sleep_for(std::chrono::milliseconds(2000));
+        std::this_thread::sleep_for(std::chrono::milliseconds(100));
 
         k += 1.0;
 
@@ -68,13 +68,7 @@ int main(int argc, char* argv[])
         std::cout << d << ' ';
 
     fg->stop();
-    fg->wait();
 
-    // DOMAIN??
-
-
-    // sched.start();
-    // sched.wait();
 
     for (const auto& d : snk->data())
         std::cout << d << ' ';

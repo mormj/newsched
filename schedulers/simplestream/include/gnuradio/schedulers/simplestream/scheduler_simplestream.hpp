@@ -26,7 +26,9 @@ public:
 
     scheduler_simplestream(const std::string name = "simplestream",
                            const unsigned int fixed_buf_size = 8192)
-        : scheduler(name), s_fixed_buf_size(fixed_buf_size), s_max_buf_items(fixed_buf_size / 2)
+        : scheduler(name),
+          s_fixed_buf_size(fixed_buf_size),
+          s_max_buf_items(fixed_buf_size / 2)
     {
     }
     ~scheduler_simplestream(){
@@ -227,7 +229,7 @@ private:
                         break;
                     }
                 }
-
+                    
                 std::vector<block_work_input> work_input;   //(num_input_ports);
                 std::vector<block_work_output> work_output; //(num_output_ports);
 
@@ -288,7 +290,7 @@ private:
                         gr_log_debug(top->_debug_logger,
                                      "write_info {} - {} @ {} {}",
                                      b->name(),
-                                     write_info.n_items, 
+                                     write_info.n_items,
                                      write_info.ptr,
                                      write_info.item_size);
                         if (!ready)
@@ -327,7 +329,8 @@ private:
                 if (ready) {
                     gr_log_debug(top->_debug_logger, "do_work for {}", b->alias());
                     work_return_code_t ret = b->do_work(work_input, work_output);
-                    
+                    gr_log_debug(top->_debug_logger, "do_work returned {}", ret);
+
 
                     if (ret == work_return_code_t::WORK_DONE) {
                         work_done = true;
@@ -340,6 +343,7 @@ private:
                             if (top->state() != scheduler_state::EXIT)
                                 top->set_state(scheduler_state::DONE);
                         }
+                        top->sched_sync->ready = true;
                         top->sched_sync->sync_cv.notify_one();
                     }
                     if (ret == work_return_code_t::WORK_OK ||
@@ -351,7 +355,12 @@ private:
                                 top->d_block_buffers[p]
                                                     [0]; // only one buffer per input port
 
+                            gr_log_debug(top->_debug_logger,
+                                         "post_read {} - {}",
+                                         b->name(),
+                                         work_input[i].n_consumed);
                             p_buf->post_read(work_input[i].n_consumed);
+                            gr_log_debug(top->_debug_logger,".");
                             i++;
                         }
 
@@ -360,13 +369,23 @@ private:
                             int j = 0;
                             for (auto p_buf : top->d_block_buffers[p]) {
                                 if (j > 0) {
+                                    gr_log_debug(top->_debug_logger,
+                                                 "copy_items {} - {}",
+                                                 b->name(),
+                                                 work_output[i].n_produced);
                                     p_buf->copy_items(top->d_block_buffers[p][0],
                                                       work_output[i].n_produced);
+                                    gr_log_debug(top->_debug_logger,".");
                                 }
                                 j++;
                             }
                             for (auto p_buf : top->d_block_buffers[p]) {
+                                gr_log_debug(top->_debug_logger,
+                                             "post_write {} - {}",
+                                             b->name(),
+                                             work_output[i].n_produced);
                                 p_buf->post_write(work_output[i].n_produced);
+                                gr_log_debug(top->_debug_logger,".");
                             }
                             i++;
                         }
@@ -385,12 +404,14 @@ private:
 
             if (!did_work) {
                 // std::this_thread::yield();
+                gr_log_debug(top->_debug_logger, "no work in this iteration");
                 std::this_thread::sleep_for(std::chrono::microseconds(2));
                 // No blocks did work in this iteration
 
                 if (top->state() == scheduler_state::DONE) {
                     // num_empty++;
                     // std::this_thread::sleep_for(std::chrono::milliseconds(10));
+                    gr_log_debug(top->_debug_logger, "flushing ..");
 
                     // if (num_empty >= 10) {
                     top->set_state(scheduler_state::FLUSHED);
@@ -399,11 +420,13 @@ private:
             }
 
             if (top->state() == scheduler_state::EXIT) {
+                gr_log_debug(top->_debug_logger,"scheduler state has been set to exit");
                 top->d_thread_stopped = true;
                 break;
             }
         }
 
+        gr_log_debug(top->_debug_logger,"exiting");
         gr_log_info(top->_logger, "exiting");
     }
 };
