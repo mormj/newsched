@@ -30,10 +30,12 @@ target_link_libraries(test_one_to_many
 )
 
 target_link_libraries(test_multisched 
+    spdlog::spdlog
     gnuradio-blocklib-common
-    gnuradio-blocklib-blocks
+    gnuradio-blocklib-blocks  
     gnuradio-runtime
     gnuradio-scheduler-simplestream
+    
 )
 
 target_link_libraries(test_multi_da

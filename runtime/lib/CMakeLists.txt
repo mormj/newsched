@@ -1,7 +1,7 @@
 add_library(gnuradio-runtime SHARED
   domain_adapter_zmq.cpp
   flat_graph.cpp
-  logging.cpp
+  # logging.cpp
   realtime.cpp
   scheduler.cpp
   )
@@ -21,10 +21,11 @@ target_include_directories(gnuradio-runtime
 
 target_link_libraries(gnuradio-runtime
 Volk::volk
+spdlog::spdlog
 ZeroMQ::ZeroMQ
 gnuradio-blocklib-blocks
 ${YAML_CPP_LIBRARIES}
-spdlog::spdlog
+
 )
 
 # ZMQ 4.3.1 deprecated the send and recv with references.  Ignore for now // FIXME
