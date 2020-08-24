@@ -9,6 +9,7 @@
 #include <gnuradio/callback.hpp>
 #include <gnuradio/flat_graph.hpp>
 #include <gnuradio/logging.hpp>
+#include <gnuradio/buffer.hpp>
 
 namespace gr {
 
@@ -41,7 +42,7 @@ public:
     };
     virtual ~scheduler();
     std::shared_ptr<scheduler> base() { return shared_from_this(); }
-    virtual void initialize(flat_graph_sptr fg) = 0;
+    virtual void initialize(flat_graph_sptr fg, const buffer_factory_function& bff=nullptr) = 0;
     virtual void start(scheduler_sync* sync) = 0;
     virtual void stop() = 0;
     virtual void wait() = 0;

@@ -5,7 +5,8 @@ namespace gr {
 namespace schedulers {
 
 
-void scheduler_simplestream::initialize(flat_graph_sptr fg)
+void scheduler_simplestream::initialize(flat_graph_sptr fg,
+                                        const buffer_factory_function& bff)
 {
     d_fg = fg;
 
@@ -16,12 +17,32 @@ void scheduler_simplestream::initialize(flat_graph_sptr fg)
         // every edge needs a buffer
         d_edge_catalog[e.identifier()] = e;
 
+        // Determine whether the blocks on either side of the edge are domain adapters
+        // If so, Domain adapters need their own buffer explicitly set
+        // Edge buffer becomes the domain adapter - edges are between actual blocks
+
+
+        // Terminology for Block/Domain Adapter connections at Domain Crossings
+        //               SRC                   DST
+        //     +-----------+  DST         SRC  +-----------+       +---
+        //     |           |  +----+   +----+  |           |       |
+        //     |   BLK1    +->+ DA +-->+ DA +->+   BLK2    +------>+
+        //     |           |  +----+   +----+  |           |       |
+        //     +-----------+                   +-----------+       +---
+        //        DOMAIN1                               DOMAIN2
+
+
         auto src_da_cast = std::dynamic_pointer_cast<domain_adapter>(e.src().node());
         auto dst_da_cast = std::dynamic_pointer_cast<domain_adapter>(e.dst().node());
 
         if (src_da_cast != nullptr) {
             if (src_da_cast->buffer_location() == buffer_location_t::LOCAL) {
-                auto buf = simplebuffer::make(s_fixed_buf_size, e.itemsize());
+                buffer_sptr buf;
+                if (!bff)
+                    buf = simplebuffer::make(s_fixed_buf_size, e.itemsize());
+                else
+                    buf = bff(s_fixed_buf_size, e.itemsize(), buffer_position_t::INGRESS);
+
                 src_da_cast->set_buffer(buf);
                 auto tmp = std::dynamic_pointer_cast<buffer>(src_da_cast);
                 d_edge_buffers[e.identifier()] = tmp;
@@ -31,7 +52,11 @@ void scheduler_simplestream::initialize(flat_graph_sptr fg)
             }
         } else if (dst_da_cast != nullptr) {
             if (dst_da_cast->buffer_location() == buffer_location_t::LOCAL) {
-                auto buf = simplebuffer::make(s_fixed_buf_size, e.itemsize());
+                buffer_sptr buf;
+                if (!bff)
+                    buf = simplebuffer::make(s_fixed_buf_size, e.itemsize());
+                else
+                    buf = bff(s_fixed_buf_size, e.itemsize(), buffer_position_t::EGRESS);
                 dst_da_cast->set_buffer(buf);
                 auto tmp = std::dynamic_pointer_cast<buffer>(dst_da_cast);
                 d_edge_buffers[e.identifier()] = tmp;
@@ -40,9 +65,16 @@ void scheduler_simplestream::initialize(flat_graph_sptr fg)
                     std::dynamic_pointer_cast<buffer>(dst_da_cast);
             }
 
-        } else {
-            d_edge_buffers[e.identifier()] =
-                simplebuffer::make(s_fixed_buf_size, e.itemsize());
+        }
+        // If there are no domain adapter involved, then simply give this edge a buffer
+        else {
+            buffer_sptr buf;
+            if (!bff)
+                buf = simplebuffer::make(s_fixed_buf_size, e.itemsize());
+            else
+                buf = bff(s_fixed_buf_size, e.itemsize(), buffer_position_t::NORMAL);
+
+            d_edge_buffers[e.identifier()] = buf;
         }
 
         d_edge_buffers[e.identifier()]->set_name(e.identifier());

@@ -35,7 +35,7 @@ public:
 
     };
 
-    void initialize(flat_graph_sptr fg);
+    void initialize(flat_graph_sptr fg, const buffer_factory_function& bff=nullptr);
 
     void start(scheduler_sync* sync);
     void stop();

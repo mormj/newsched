@@ -155,7 +155,7 @@ namespace gr {
         d_flat_subgraphs.clear();
         for (auto i = 0; i < partition_scheds.size(); i++) {
             d_flat_subgraphs.push_back(flat_graph::make_flat(d_subgraphs[i]));
-            partition_scheds[i]->initialize(d_flat_subgraphs[i]);
+            partition_scheds[i]->initialize(d_flat_subgraphs[i], confs[i].buf_factory());
         }
     }
     void flowgraph::validate()

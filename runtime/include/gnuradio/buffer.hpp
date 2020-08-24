@@ -6,6 +6,17 @@
 
 namespace gr {
 
+
+
+/**
+ * @brief Buffer position defines where the buffer sits relative to the sub-graph
+ *
+ * If it is as the edge, it should be INGRESS or EGRESS, if that is a necessary
+ * consideration for the domain scheduler
+ */
+enum class buffer_position_t { NORMAL, INGRESS, EGRESS };
+
+
 struct buffer_info_t {
     void* ptr;
     int n_items; // number of items available to be read or written
@@ -54,5 +65,20 @@ public:
 };
 
 typedef std::shared_ptr<buffer> buffer_sptr;
+
+typedef std::function<std::shared_ptr<buffer>(size_t, size_t, buffer_position_t)>
+    buffer_factory_function;
+    
+// template <class TClass, class TInterface>
+// class buffer_factory
+// {
+//     static std::shared_ptr<TInterface> make_buffer(size_t num_items, size_t item_size,
+//     buffer_position_t buf_pos=buffer_position_t::NORMAL)
+//     {
+//         return buffer::make(size_t num_items, size_t item_size, buffer_position_t
+//         buf_pos=buffer_position_t::NORMAL);
+//     };
+// };
+
 
 } // namespace gr
