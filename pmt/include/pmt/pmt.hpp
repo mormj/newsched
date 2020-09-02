@@ -59,6 +59,9 @@ public:
     pmt_container_type_t container_type() const { return _container_type; };
     std::any object() { return _object; }
 
+    bool serialize(std::streambuf& sink);
+    bool deserialize(std::streambuf& source);
+
 protected:
     std::any _object;
     pmt_data_type_t _data_type;
@@ -116,12 +119,13 @@ public:
         return std::make_shared<pmt_vector<T>>(pmt_vector<T>(value));
     }
 
-    pmt_vector(const std::vector<T> value)
+    pmt_vector(const std::vector<T>& value)
         : pmt_base(std::make_any<std::vector<T>>(value),
                    pmt_functions::get_pmt_type_from_typeinfo(std::type_index(typeid(T))),
-                   pmt_container_type_t::VECTOR),
-          _value(value)
+                   pmt_container_type_t::VECTOR) //,
+        //   _value(std::move(value))
     {
+        _value = value;
     }
 
     pmt_vector(pmt_base& b) : pmt_base(b)
@@ -134,7 +138,16 @@ public:
         _value = val;
         _object = std::make_any<std::vector<T>>(val);
     }
-    std::vector<T> value() { return _value; };
+    std::vector<T> value() const { return _value; };
+
+    void operator=(const std::vector<T>& other) // copy assignment
+    {
+        set_value(other);
+    }
+
+    bool operator==(const std::vector<T>& other) { return other == _value; }
+    bool operator!=(const std::vector<T>& other) { return other != _value; }
+
 
 protected:
     std::vector<T> _value;
