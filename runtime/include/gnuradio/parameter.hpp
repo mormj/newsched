@@ -2,11 +2,13 @@
 
 #include <gnuradio/parameter_types.hpp>
 #include <any>
+#include <functional>
+#include <memory>
+#include <queue>
 #include <string>
 #include <vector>
-#include <queue>
-#include <memory>
-#include <functional>
+
+#include <gnuradio/scheduler_message.hpp>
 
 namespace gr {
 
@@ -91,13 +93,14 @@ class param : public param_base
 public:
     typedef std::shared_ptr<param> sptr;
     static sptr make(const uint32_t id,
-          const std::string name,
-          const T default_value,
-          T* value_ptr,
-          const std::vector<size_t> dims = std::vector<size_t>{ 1 })
-          {
-              return std::make_shared<param<T>>(param<T>(id, name, default_value, value_ptr, dims));
-          }
+                     const std::string name,
+                     const T default_value,
+                     T* value_ptr,
+                     const std::vector<size_t> dims = std::vector<size_t>{ 1 })
+    {
+        return std::make_shared<param<T>>(
+            param<T>(id, name, default_value, value_ptr, dims));
+    }
     param(const uint32_t id,
           const std::string name,
           const T default_value,
@@ -126,7 +129,7 @@ public:
     void set_value(const std::any& val)
     {
         _any_value = val;
-        set_value( std::any_cast<T>(val) );
+        set_value(std::any_cast<T>(val));
     }
     T value() { return *_value_ptr; };
 
@@ -154,7 +157,6 @@ public:
     void set_any_value(std::any val) { _any_value = val; }
     uint64_t at_sample() { return _at_sample; }
     void set_at_sample(uint64_t val) { _at_sample = val; }
-
 };
 
 typedef std::shared_ptr<param_action_base> param_action_sptr;
@@ -175,14 +177,12 @@ public:
 
     static sptr make(uint32_t id, T new_value, uint64_t at_sample)
     {
-        return std::make_shared<param_action<T>>(param_action<T>(id, new_value, at_sample));
+        return std::make_shared<param_action<T>>(
+            param_action<T>(id, new_value, at_sample));
     }
 
     // Constructor where the current value is "don't care"
-    param_action(uint32_t id)
-        : param_action_base(id, std::any(), 0)
-    {
-    }
+    param_action(uint32_t id) : param_action_base(id, std::any(), 0) {}
 
     param_action(uint32_t id, T new_value, uint64_t at_sample)
         : param_action_base(id, std::make_any<T>(new_value), at_sample),
@@ -195,19 +195,50 @@ public:
         _new_value = std::any_cast<T>(b.any_value());
     }
 
-    T new_value() { return std::any_cast<T>( _any_value); }
+    T new_value() { return std::any_cast<T>(_any_value); }
 };
 
 typedef std::function<void(param_action_sptr)> param_action_complete_fcn;
-struct param_action_base_with_callback {
-    std::string block_id;
-    param_action_sptr param_action;
-    param_action_complete_fcn cb_fcn;
+class param_action_base_with_callback : public scheduler_message
+{
+public:
+    param_action_base_with_callback(scheduler_message_t action_type,
+                                    std::string block_id,
+                                    param_action_sptr param_action,
+                                    param_action_complete_fcn cb_fcn)
+        : scheduler_message(action_type), _block_id(block_id), _param_action(param_action), _cb_fcn(cb_fcn)
+    {
+    }
+    std::string _block_id;
+    param_action_sptr _param_action;
+    param_action_complete_fcn _cb_fcn;
 };
 
 typedef std::queue<param_action_base_with_callback> param_action_queue;
 
 typedef std::shared_ptr<param_base> param_sptr;
+
+class param_query_action : public param_action_base_with_callback
+{
+public:
+    param_query_action(std::string block_id,
+                       param_action_sptr param_action,
+                       param_action_complete_fcn cb_fcn) :
+          param_action_base_with_callback(scheduler_message_t::PARAMETER_QUERY, block_id, param_action, cb_fcn)
+    {
+    }
+};
+
+class param_change_action : public param_action_base_with_callback
+{
+public:
+    param_change_action(std::string block_id,
+                       param_action_sptr param_action,
+                       param_action_complete_fcn cb_fcn) :
+          param_action_base_with_callback(scheduler_message_t::PARAMETER_CHANGE, block_id, param_action, cb_fcn)
+    {
+    }
+};
 
 class parameter_config
 {
@@ -224,7 +255,8 @@ public:
             std::find_if(std::begin(params), std::end(params), pred);
 
         if (it == std::end(params))
-            throw std::runtime_error("parameter not defined for this block"); // TODO logging
+            throw std::runtime_error(
+                "parameter not defined for this block"); // TODO logging
 
         return *it;
     }
@@ -235,7 +267,8 @@ public:
             std::find_if(std::begin(params), std::end(params), pred);
 
         if (it == std::end(params))
-            throw std::runtime_error("parameter not defined for this block"); // TODO logging
+            throw std::runtime_error(
+                "parameter not defined for this block"); // TODO logging
 
         return *it;
     }
