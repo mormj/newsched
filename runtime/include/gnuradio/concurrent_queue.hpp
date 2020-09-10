@@ -4,6 +4,7 @@
 #include <mutex>
 #include <deque>
 #include <atomic>
+#include <iostream>
 
 #include <gnuradio/scheduler_message.hpp>
 
@@ -15,6 +16,7 @@ class concurrent_queue
 public:
     bool push(const T& msg)
     {
+        // std::cout << "**push" << std::endl;
         std::unique_lock<std::mutex> l(_mutex);
         _queue.push_back(msg);
         l.unlock();
@@ -24,9 +26,11 @@ public:
     }
     bool pop(T& msg)
     {
+        // std::cout << "**pop" << std::endl;
         std::unique_lock<std::mutex> l(_mutex);
         _cond.wait(l, [this] { return !_queue.empty(); }); // TODO - replace with a waitfor
 
+        // std::cout << "qsz: " << _queue.size() << std::endl;
         msg = _queue.front();
         _queue.pop_front();
         return true;

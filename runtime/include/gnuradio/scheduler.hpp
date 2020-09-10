@@ -37,9 +37,9 @@ struct scheduler_sync {
 
 /**
  * @brief Keep track of upstream and downstream neighbors for a block
- * 
+ *
  * A block can only have one upstream neighbor
- * 
+ *
  */
 struct neighbor_scheduler_info {
     std::shared_ptr<scheduler> upstream_neighbor_sched = nullptr;
@@ -47,12 +47,14 @@ struct neighbor_scheduler_info {
     std::vector<std::shared_ptr<scheduler>> downstream_neighbor_scheds;
     std::vector<nodeid_t> downstream_neighbor_blkids;
 
-    void set_upstream(std::shared_ptr<scheduler> sched, nodeid_t blkid){
+    void set_upstream(std::shared_ptr<scheduler> sched, nodeid_t blkid)
+    {
         upstream_neighbor_sched = sched;
         upstream_neighbor_blkid = blkid;
     }
 
-    void add_downstream(std::shared_ptr<scheduler> sched, nodeid_t blkid){
+    void add_downstream(std::shared_ptr<scheduler> sched, nodeid_t blkid)
+    {
         downstream_neighbor_scheds.push_back(sched);
         downstream_neighbor_blkids.push_back(blkid);
     }
@@ -87,29 +89,33 @@ public:
     virtual void stop() = 0;
     virtual void wait() = 0;
 
-    virtual void push_message(scheduler_message_sptr msg) { msgq.push(msg); }
+    virtual void push_message(scheduler_message_sptr msg)
+    {
+        // std::cout << "* push_message" << std::endl;
+        msgq.push(msg);
+    }
     virtual bool pop_message(scheduler_message_sptr& msg) { return msgq.pop(msg); }
 
-    virtual void request_parameter_query(const std::string& block_alias,
+    virtual void request_parameter_query(const nodeid_t blkid,
                                          param_action_sptr param_action,
                                          param_action_complete_fcn cb_when_complete)
     {
-        gr_log_debug(_debug_logger, "request_parameter_query: {}", block_alias);
+        gr_log_debug(_debug_logger, "request_parameter_query: {}", blkid);
         // param_query_queue.emplace(param_action_base_with_callback{
         //     block_alias, param_action, cb_when_complete });
-        push_message(std::make_shared<param_query_action>(
-            block_alias, param_action, cb_when_complete));
+        push_message(
+            std::make_shared<param_query_action>(blkid, param_action, cb_when_complete));
     }
 
-    virtual void request_parameter_change(const std::string& block_alias,
+    virtual void request_parameter_change(const nodeid_t blkid,
                                           param_action_sptr param_action,
                                           param_action_complete_fcn cb_when_complete)
     {
         // param_change_queue.emplace(param_action_base_with_callback{
         //     block_alias, param_action, cb_when_complete });
 
-        push_message(std::make_shared<param_change_action>(
-            block_alias, param_action, cb_when_complete));
+        push_message(
+            std::make_shared<param_change_action>(blkid, param_action, cb_when_complete));
     }
 
     virtual void request_callback(const std::string& block_alias,

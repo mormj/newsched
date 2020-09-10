@@ -123,6 +123,7 @@ public:
     void set_value(T val)
     {
         // TODO: do range checking
+        // FIXME - don't use raw pointers
         _param_set = true;
         *_value_ptr = val;
     }
@@ -203,13 +204,17 @@ class param_action_base_with_callback : public scheduler_message
 {
 public:
     param_action_base_with_callback(scheduler_message_t action_type,
-                                    std::string block_id,
+                                    nodeid_t block_id,
                                     param_action_sptr param_action,
                                     param_action_complete_fcn cb_fcn)
         : scheduler_message(action_type), _block_id(block_id), _param_action(param_action), _cb_fcn(cb_fcn)
     {
     }
-    std::string _block_id;
+    nodeid_t block_id() { return _block_id; }
+    param_action_sptr param_action() { return _param_action; }
+    param_action_complete_fcn cb_fcn() { return _cb_fcn; }
+private:
+    nodeid_t _block_id;
     param_action_sptr _param_action;
     param_action_complete_fcn _cb_fcn;
 };
@@ -221,7 +226,7 @@ typedef std::shared_ptr<param_base> param_sptr;
 class param_query_action : public param_action_base_with_callback
 {
 public:
-    param_query_action(std::string block_id,
+    param_query_action(nodeid_t block_id,
                        param_action_sptr param_action,
                        param_action_complete_fcn cb_fcn) :
           param_action_base_with_callback(scheduler_message_t::PARAMETER_QUERY, block_id, param_action, cb_fcn)
@@ -232,7 +237,7 @@ public:
 class param_change_action : public param_action_base_with_callback
 {
 public:
-    param_change_action(std::string block_id,
+    param_change_action(nodeid_t block_id,
                        param_action_sptr param_action,
                        param_action_complete_fcn cb_fcn) :
           param_action_base_with_callback(scheduler_message_t::PARAMETER_CHANGE, block_id, param_action, cb_fcn)

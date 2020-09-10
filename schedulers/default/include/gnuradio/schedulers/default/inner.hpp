@@ -86,6 +86,7 @@ public:
         for (auto& b : fg->calc_used_blocks()) {
             b->set_scheduler(base());
             d_blocks.push_back(b);
+            d_block_id_to_block_map[b->id()] = b;
 
             port_vector_t input_ports = b->input_stream_ports();
             port_vector_t output_ports = b->output_stream_ports();
@@ -341,28 +342,26 @@ public:
         push_message(std::make_shared<scheduler_action>(
             scheduler_action(scheduler_action_t::NOTIFY_ALL)));
     }
-    void notify_upstream(nodeid_t blkid)
+
+    std::vector<scheduler_sptr> get_neighbors_upstream(nodeid_t blkid)
     {
+        std::vector<scheduler_sptr> ret;
         // Find whether this block has an upstream neighbor
         auto search = d_block_sched_map.find(blkid);
         if (search != d_block_sched_map.end()) {
             // Entry in the map exists, is the ptr real?
             if (search->second.upstream_neighbor_sched) {
                 // Notify upstream neighbor
-                gr_log_debug(_debug_logger,
-                             "Notifying neighbor sched {} blkid {} because of work "
-                             "done on block id {}",
-                             search->second.upstream_neighbor_sched->name(),
-                             search->second.upstream_neighbor_blkid,
-                             blkid);
-                search->second.upstream_neighbor_sched->push_message(
-                    std::make_shared<scheduler_action>(
-                        scheduler_action(scheduler_action_t::NOTIFY_INPUT)));
+                ret.push_back(search->second.upstream_neighbor_sched);
             }
         }
+
+        return ret;
     }
-    void notify_downstream(nodeid_t blkid)
+
+    std::vector<scheduler_sptr> get_neighbors_downstream(nodeid_t blkid)
     {
+        std::vector<scheduler_sptr> ret;
         // Find whether this block has any downstream neighbors
         auto search = d_block_sched_map.find(blkid);
         if (search != d_block_sched_map.end()) {
@@ -370,22 +369,62 @@ public:
             if (!search->second.downstream_neighbor_scheds.empty()) {
 
                 for (auto sched : search->second.downstream_neighbor_scheds) {
-                    // Notify upstream neighbor
-                    gr_log_debug(_debug_logger,
-                                 "Notifying neighbor sched {} because of work "
-                                 "done on block id {}",
-                                 sched->name(),
-                                 blkid);
-                    sched->push_message(std::make_shared<scheduler_action>(
-                        scheduler_action(scheduler_action_t::NOTIFY_OUTPUT)));
+                    ret.push_back(sched);
                 }
             }
         }
+
+        return ret;
     }
-    void notify_neighbors(nodeid_t blkid)
+
+    std::vector<scheduler_sptr> get_neighbors(nodeid_t blkid)
     {
-        notify_upstream(blkid);
-        notify_downstream(blkid);
+        std::vector ret = get_neighbors_upstream(blkid);
+        std::vector ds = get_neighbors_downstream(blkid);
+
+        ret.insert(ret.end(), ds.begin(), ds.end());
+        return ret;
+    }
+
+    void notify_upstream(scheduler_sptr upstream_sched)
+    {
+        upstream_sched->push_message(std::make_shared<scheduler_action>(
+            scheduler_action(scheduler_action_t::NOTIFY_INPUT)));
+    }
+    void notify_downstream(scheduler_sptr downstream_sched)
+    {
+        downstream_sched->push_message(std::make_shared<scheduler_action>(
+            scheduler_action(scheduler_action_t::NOTIFY_OUTPUT)));
+    }
+
+    void handle_parameter_query(std::shared_ptr<param_query_action> item)
+    {
+        auto b = d_block_id_to_block_map[item->block_id()];
+
+        gr_log_debug(_debug_logger,
+                     "handle parameter query {} - {}",
+                     item->block_id(),
+                     b->alias());
+
+        b->on_parameter_query(item->param_action());
+
+        if (item->cb_fcn() != nullptr)
+            item->cb_fcn()(item->param_action());
+    }
+
+    void handle_parameter_change(std::shared_ptr<param_change_action> item)
+    {
+        auto b = d_block_id_to_block_map[item->block_id()];
+
+        gr_log_debug(_debug_logger,
+                     "handle parameter change {} - {}",
+                     item->block_id(),
+                     b->alias());
+
+        b->on_parameter_change(item->param_action());
+
+        if (item->cb_fcn() != nullptr)
+            item->cb_fcn()(item->param_action());
     }
 
 private:
@@ -394,6 +433,7 @@ private:
         d_block_sched_map; // map of block ids to scheduler interfaces / adapters
     flowgraph_monitor_sptr d_fgmon;
     std::vector<block_sptr> d_blocks;
+    std::map<nodeid_t, block_sptr> d_block_id_to_block_map;
     std::map<std::string, edge> d_edge_catalog;
     std::map<std::string, buffer_sptr> d_edge_buffers;
     std::map<port_sptr, std::vector<buffer_sptr>> d_block_buffers;
@@ -458,20 +498,85 @@ private:
                             }
                         }
 
-                        // If work was done in this iteration, tell my own thread
-                        // to go for it again
+                        bool notify_self = false;
+
+                        std::vector<scheduler_sptr> sched_to_notify_upstream,
+                            sched_to_notify_downstream;
+
                         for (auto elem : s) {
+
                             if (elem.second == scheduler_iteration_status::READY) {
-                                top->notify_self();
-                                top->notify_neighbors(elem.first);
+                                // top->notify_neighbors(elem.first);
+                                auto tmp_us = top->get_neighbors_upstream(elem.first);
+                                auto tmp_ds = top->get_neighbors_downstream(elem.first);
+
+                                if (!tmp_us.empty()) {
+                                    sched_to_notify_upstream.insert(
+                                        sched_to_notify_upstream.end(),
+                                        tmp_us.begin(),
+                                        tmp_us.end());
+                                }
+                                if (!tmp_ds.empty()) {
+                                    sched_to_notify_downstream.insert(
+                                        sched_to_notify_downstream.end(),
+                                        tmp_ds.begin(),
+                                        tmp_ds.end());
+                                }
+                                notify_self = true;
+
                             } else if (elem.second ==
                                        scheduler_iteration_status::BLKD_IN) {
-                                top->notify_upstream(elem.first);
+                                // top->notify_upstream(elem.first);
+                                auto tmp_us = top->get_neighbors_upstream(elem.first);
+                                if (!tmp_us.empty()) {
+                                    sched_to_notify_upstream.insert(
+                                        sched_to_notify_upstream.end(),
+                                        tmp_us.begin(),
+                                        tmp_us.end());
+                                }
                             } else if (elem.second ==
                                        scheduler_iteration_status::BLKD_OUT) {
-                                top->notify_downstream(elem.first);
+                                // top->notify_downstream(elem.first);
+                                auto tmp_ds = top->get_neighbors_downstream(elem.first);
+                                if (!tmp_ds.empty()) {
+                                    sched_to_notify_downstream.insert(
+                                        sched_to_notify_downstream.end(),
+                                        tmp_ds.begin(),
+                                        tmp_ds.end());
+                                }
                             }
                         }
+
+                        if (notify_self) {
+                            top->notify_self();
+                        }
+
+                        if (!sched_to_notify_upstream.empty()) {
+                            // Reduce to the unique schedulers to notify
+                            std::sort(sched_to_notify_upstream.begin(),
+                                      sched_to_notify_upstream.end());
+                            auto last = std::unique(sched_to_notify_upstream.begin(),
+                                                    sched_to_notify_upstream.end());
+                            sched_to_notify_upstream.erase(
+                                last, sched_to_notify_upstream.end());
+                            for (auto sched : sched_to_notify_upstream) {
+                                top->notify_upstream(sched);
+                            }
+                        }
+
+                        if (!sched_to_notify_downstream.empty()) {
+                            // Reduce to the unique schedulers to notify
+                            std::sort(sched_to_notify_downstream.begin(),
+                                      sched_to_notify_downstream.end());
+                            auto last = std::unique(sched_to_notify_downstream.begin(),
+                                                    sched_to_notify_downstream.end());
+                            sched_to_notify_downstream.erase(
+                                last, sched_to_notify_downstream.end());
+                            for (auto sched : sched_to_notify_downstream) {
+                                top->notify_downstream(sched);
+                            }
+                        }
+
                     }
 
                     break;
@@ -480,12 +585,13 @@ private:
                 }
                 case scheduler_message_t::PARAMETER_QUERY: {
                     // Query the state of a parameter on a block
-
-                    // auto query = std::static_pointer_cast<parameter_query>(msg);
-                    //
-
-                    // std::cout << typeid(query).name() << std::endl;
-
+                    top->handle_parameter_query(
+                        std::static_pointer_cast<param_query_action>(msg));
+                } break;
+                case scheduler_message_t::PARAMETER_CHANGE: {
+                    // Query the state of a parameter on a block
+                    top->handle_parameter_change(
+                        std::static_pointer_cast<param_change_action>(msg));
                 } break;
                 }
             }

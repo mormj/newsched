@@ -220,6 +220,7 @@ void flowgraph::stop()
     for (auto s : d_schedulers) {
         s->stop();
     }
+    d_fgmon->stop();
 }
 void flowgraph::wait()
 {
