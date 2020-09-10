@@ -36,7 +36,7 @@ struct scheduler_sync {
 };
 
 
-typedef std::map<uint64_t, std::shared_ptr<scheduler>> block_scheduler_map;
+typedef std::map<nodeid_t, std::shared_ptr<scheduler>> block_scheduler_map;
 
 class scheduler : public std::enable_shared_from_this<scheduler>
 {

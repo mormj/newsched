@@ -19,12 +19,15 @@
 #include <gnuradio/nodeid_generator.hpp>
 
 namespace gr {
+
+typedef uint32_t nodeid_t;
+
 class node
 {
 protected:
     std::string d_name;
     std::string d_alias;
-    uint32_t    d_id; // Unique number given to block from runtime
+    nodeid_t    d_id; // Unique number given to block from runtime
     io_signature d_input_signature;
     io_signature d_output_signature;
     std::vector<port_sptr> d_all_ports;

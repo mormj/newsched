@@ -139,10 +139,10 @@ public:
         wait();
     }
 
-    std::map<uint32_t, scheduler_iteration_status>
+    std::map<nodeid_t, scheduler_iteration_status>
     run_one_iteration(std::vector<block_sptr> blocks = std::vector<block_sptr>())
     {
-        std::map<uint32_t, scheduler_iteration_status> per_block_status;
+        std::map<nodeid_t, scheduler_iteration_status> per_block_status;
 
         // If no blocks are specified for the iteration, then run over all the blocks in
         // the default ordering
@@ -362,32 +362,48 @@ private:
             scheduler_message_sptr msg;
             if (top->pop_message(msg)) // this blocks
             {
-                std::cout << typeid(msg).name() << std::endl;
                 switch (msg->type()) {
                 case scheduler_message_t::SCHEDULER_ACTION: {
                     // Notification that work needs to be done
                     // either from runtime or upstream or downstream or from self
 
                     auto action = std::static_pointer_cast<scheduler_action>(msg);
-                    std::cout << "action: " << (int)action->action() << std::endl;
-
                     switch (action->action()) {
+                    case scheduler_action_t::DONE:
+                        // fgmon says that we need to be done, wrap it up
+                        // each scheduler could handle this in a different way
+                        gr_log_debug(top->_debug_logger,
+                                     "fgm signaled DONE, pushing flushed");
+                        top->d_fgmon->push_message(
+                            fg_monitor_message(fg_monitor_message_t::FLUSHED, top->id()));
+                        break;
+                    case scheduler_action_t::EXIT:
+                        // fgmon says that we need to be done, wrap it up
+                        // each scheduler could handle this in a different way
+                        top->d_thread_stopped = true;
+                        break;
                     case scheduler_action_t::NOTIFY_OUTPUT:
                     case scheduler_action_t::NOTIFY_INPUT:
                     case scheduler_action_t::NOTIFY_ALL: {
 
                         auto s = top->run_one_iteration();
+                        std::string dbg_work_done;
                         for (auto elem : s) {
-                            std::cout << elem.first << " " << (int)elem.second
-                                      << std::endl;
+                            dbg_work_done += "[" + std::to_string(elem.first) + "," +
+                                             std::to_string((int)elem.second) + "]" + ",";
                         }
+                        gr_log_debug(top->_debug_logger, dbg_work_done);
 
                         // Based on state of the run_one_iteration, do things
                         // If any of the blocks are done, notify the flowgraph monitor
                         for (auto elem : s) {
                             if (elem.second == scheduler_iteration_status::DONE) {
-                                top->d_fgmon->push_message(
-                                    fg_monitor_message(fg_monitor_message_t::DONE));
+                                gr_log_debug(top->_debug_logger,
+                                             "Signalling DONE to FGM from block {}",
+                                             elem.first);
+                                top->d_fgmon->push_message(fg_monitor_message(
+                                    fg_monitor_message_t::DONE, top->id(), elem.first));
+                                break; // only notify the fgmon once
                             }
                         }
 
@@ -395,7 +411,6 @@ private:
                         // to go for it again
                         bool notify_myself = false;
                         for (auto elem : s) {
-
                             if (elem.second == scheduler_iteration_status::READY) {
                                 notify_myself = true;
                             }
@@ -404,18 +419,29 @@ private:
                             top->push_message(std::make_shared<scheduler_action>(
                                 scheduler_action(scheduler_action_t::NOTIFY_ALL)));
                         }
+
+                        // Blocks that did work need to notify the neighbor schedulers
+                        // that work was done
+                        for (auto elem : s) {
+                            if (elem.second == scheduler_iteration_status::READY ||
+                                elem.second == scheduler_iteration_status::BLKD_IN ||
+                                elem.second == scheduler_iteration_status::BLKD_OUT) {
+                                auto search = top->d_block_sched_map.find(elem.first);
+                                if (search != top->d_block_sched_map.end()) {
+                                    gr_log_debug(top->_debug_logger,
+                                                 "Notifying neighbor {} because of work "
+                                                 "done on block id {}",
+                                                 search->second->name(),
+                                                 elem.first);
+                                    search->second->push_message(
+                                        std::make_shared<scheduler_action>(
+                                            scheduler_action(
+                                                scheduler_action_t::NOTIFY_ALL)));
+                                }
+                            }
+                        }
+
                     } break;
-                    case scheduler_action_t::DONE:
-                        // fgmon says that we need to be done, wrap it up
-                        // each scheduler could handle this in a different way
-                        top->d_fgmon->push_message(
-                            fg_monitor_message(fg_monitor_message_t::FLUSHED));
-                        break;
-                    case scheduler_action_t::EXIT:
-                        // fgmon says that we need to be done, wrap it up
-                        // each scheduler could handle this in a different way
-                        top->d_thread_stopped = true;
-                        break;
                     }
                     break;
                 }
@@ -429,9 +455,9 @@ private:
 
                 } break;
                 }
-                }
             }
         }
-    }; // namespace schedulers
+    }
+};
 } // namespace schedulers
-} // namespace schedulers
+} // namespace gr

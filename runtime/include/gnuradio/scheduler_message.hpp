@@ -18,11 +18,11 @@ class scheduler_message
 public:
     scheduler_message(scheduler_message_t type) : _type(type) {}
     scheduler_message_t type() { return _type; }
-    uint64_t blkid() { return _blkid; }
+    int64_t blkid() { return _blkid; }
 
 private:
     scheduler_message_t _type;
-    uint64_t _blkid;
+    int64_t _blkid;
 
     // scheduler message can be of type:
     //   parameter_query

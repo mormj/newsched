@@ -5,17 +5,36 @@ namespace gr {
 void flowgraph::set_scheduler(scheduler_sptr sched)
 {
     d_schedulers = std::vector<scheduler_sptr>{ sched };
-    d_fgmon = std::make_shared<flowgraph_monitor>(d_schedulers);
+
+    // assign ids to the schedulers
+    int idx = 1;
+    for (auto s : d_schedulers) {
+        s->set_id(idx++);
+    }
 }
 void flowgraph::set_schedulers(std::vector<scheduler_sptr> sched)
 {
     d_schedulers = sched;
-    d_fgmon = std::make_shared<flowgraph_monitor>(d_schedulers);
+
+    // assign ids to the schedulers
+    int idx = 1;
+    for (auto s : d_schedulers) {
+        s->set_id(idx++);
+    }
 }
-void flowgraph::add_scheduler(scheduler_sptr sched) { d_schedulers.push_back(sched); }
+void flowgraph::add_scheduler(scheduler_sptr sched)
+{
+    d_schedulers.push_back(sched);
+    // assign ids to the schedulers
+    int idx = 1;
+    for (auto s : d_schedulers) {
+        s->set_id(idx++);
+    }
+}
 void flowgraph::clear_schedulers() { d_schedulers.clear(); }
 void flowgraph::partition(std::vector<domain_conf>& confs)
 {
+    d_fgmon = std::make_shared<flowgraph_monitor>(d_schedulers);
     // Create new subgraphs based on the partition configuration
     d_subgraphs.clear();
 
@@ -23,8 +42,12 @@ void flowgraph::partition(std::vector<domain_conf>& confs)
     std::vector<edge> domain_crossings;
     std::vector<domain_conf> crossing_confs;
     std::vector<scheduler_sptr> partition_scheds;
+    std::vector<scheduler_sptr> crossing_scheds;
+
+    std::map<nodeid_t, scheduler_sptr> block_scheduler_map;
 
     for (auto& conf : confs) {
+
         auto g = graph::make(); // create a new subgraph
         // Go through the blocks assigned to this scheduler
         // See whether they connect to the same graph or account for a domain crossing
@@ -33,6 +56,9 @@ void flowgraph::partition(std::vector<domain_conf>& confs)
         auto blocks = conf.blocks(); // std::get<1>(conf);
         for (auto b : blocks)        // for each of the blocks in the tuple
         {
+            // Store the block to scheduler mapping for later use
+            block_scheduler_map[b->id()] = sched;
+
             for (auto input_port : b->input_stream_ports()) {
                 auto edges = find_edge(input_port);
                 // There should only be one edge connected to an input port
@@ -66,6 +92,9 @@ void flowgraph::partition(std::vector<domain_conf>& confs)
     //   1.  All schedulers running on the same processor
     //   2.  Outputs that cross domains can only be mapped one input
     //   3.  Fixed client/server relationship - limited configuration of DA
+
+    std::map<scheduler_sptr, std::map<nodeid_t, scheduler_sptr>>
+        block_scheduler_map_per_scheduler;
 
     int crossing_index = 0;
     for (auto c : domain_crossings) {
@@ -102,7 +131,7 @@ void flowgraph::partition(std::vector<domain_conf>& confs)
         // put the buffer downstream
         auto conf = crossing_confs[crossing_index];
 
-        // Does the crossing have a specific domain adapter defined
+        // Does the crossing have a specific domain adapter defined?
         domain_adapter_conf_sptr da_conf = nullptr;
         for (auto ec : conf.da_edge_confs()) {
             auto conf_edge = std::get<0>(ec);
@@ -112,7 +141,6 @@ void flowgraph::partition(std::vector<domain_conf>& confs)
             }
         }
 
-
         // else if defined: use the default defined for the domain
         if (!da_conf) {
             da_conf = conf.da_conf();
@@ -121,19 +149,7 @@ void flowgraph::partition(std::vector<domain_conf>& confs)
         // else, use the default domain adapter configuration ??
         // TODO
 
-
-#if 0
-            auto da_src =
-                domain_adapter_zmq_req_cli::make(std::string("tcp://127.0.0.1:1234"),
-                                                 buffer_preference_t::UPSTREAM,
-                                                 c.src().port());
-            auto da_dst =
-                domain_adapter_zmq_rep_svr::make(std::string("tcp://127.0.0.1:1234"),
-                                                 buffer_preference_t::UPSTREAM,
-                                                 c.dst().port());
-#endif
         // use the conf to produce the domain adapters
-
         auto da_pair = da_conf->make_domain_adapter_pair(
             c.src().port(),
             c.dst().port(),
@@ -150,20 +166,37 @@ void flowgraph::partition(std::vector<domain_conf>& confs)
         dst_block_graph->connect(node_endpoint(da_dst, da_dst->all_ports()[0]), c.dst());
 
 
+        // Set the block id to "other scheduler" maps
+        // This can/should be scheduler adapters, but use direct scheduler sptrs for now
+
+        auto dst_block_id = c.dst().node()->id();
+        auto src_block_id = c.src().node()->id();
+
+        block_scheduler_map_per_scheduler[block_scheduler_map[dst_block_id]]
+                                         [dst_block_id] =
+                                             block_scheduler_map[src_block_id];
+        block_scheduler_map_per_scheduler[block_scheduler_map[src_block_id]]
+                                         [src_block_id] =
+                                             block_scheduler_map[dst_block_id];
+
         crossing_index++;
     }
 
     d_flat_subgraphs.clear();
     for (auto i = 0; i < partition_scheds.size(); i++) {
         d_flat_subgraphs.push_back(flat_graph::make_flat(d_subgraphs[i]));
-        partition_scheds[i]->initialize(d_flat_subgraphs[i],
-                                        d_fgmon);
+        partition_scheds[i]->initialize(
+            d_flat_subgraphs[i],
+            d_fgmon,
+            block_scheduler_map_per_scheduler[partition_scheds[i]]);
     }
 }
 
 void flowgraph::validate()
 {
     gr_log_trace(_debug_logger, "validate()");
+    d_fgmon = std::make_shared<flowgraph_monitor>(d_schedulers);
+
     d_flat_graph = flat_graph::make_flat(base());
     for (auto sched : d_schedulers)
         sched->initialize(d_flat_graph, d_fgmon);
@@ -174,12 +207,6 @@ void flowgraph::start()
     gr_log_trace(_debug_logger, "start()");
     // Need thread synchronization for the schedulers - to know when they're done and
     // signal the other schedulers that might be connected
-
-    // assign ids to the schedulers
-    int idx = 0;
-    for (auto s : d_schedulers) {
-        s->set_id(idx++);
-    }
 
     d_fgmon->start();
     for (auto s : d_schedulers) {

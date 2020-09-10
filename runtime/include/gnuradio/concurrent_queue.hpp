@@ -2,7 +2,7 @@
 
 #include <condition_variable>
 #include <mutex>
-#include <queue>
+#include <deque>
 #include <atomic>
 
 #include <gnuradio/scheduler_message.hpp>
@@ -16,7 +16,7 @@ public:
     bool push(const T& msg)
     {
         std::unique_lock<std::mutex> l(_mutex);
-        _queue.push(msg);
+        _queue.push_back(msg);
         l.unlock();
         _cond.notify_all();
 
@@ -28,19 +28,19 @@ public:
         _cond.wait(l, [this] { return !_queue.empty(); }); // TODO - replace with a waitfor
 
         msg = _queue.front();
-        _queue.pop();
+        _queue.pop_front();
         return true;
     }
-    bool empty()
+    void clear()
     {
         std::unique_lock<std::mutex> l(_mutex);
-        return _queue.empty();
+        _queue.clear();
         // l.unlock();
         // _cond.notify_all();
     }
 
 private:
-    std::queue<T> _queue;
+    std::deque<T> _queue;
     std::mutex _mutex;
     std::condition_variable _cond;
     std::atomic<bool> _ready;
