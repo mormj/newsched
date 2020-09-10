@@ -336,6 +336,57 @@ public:
         return per_block_status;
     }
 
+    void notify_self()
+    {
+        push_message(std::make_shared<scheduler_action>(
+            scheduler_action(scheduler_action_t::NOTIFY_ALL)));
+    }
+    void notify_upstream(nodeid_t blkid)
+    {
+        // Find whether this block has an upstream neighbor
+        auto search = d_block_sched_map.find(blkid);
+        if (search != d_block_sched_map.end()) {
+            // Entry in the map exists, is the ptr real?
+            if (search->second.upstream_neighbor_sched) {
+                // Notify upstream neighbor
+                gr_log_debug(_debug_logger,
+                             "Notifying neighbor sched {} blkid {} because of work "
+                             "done on block id {}",
+                             search->second.upstream_neighbor_sched->name(),
+                             search->second.upstream_neighbor_blkid,
+                             blkid);
+                search->second.upstream_neighbor_sched->push_message(
+                    std::make_shared<scheduler_action>(
+                        scheduler_action(scheduler_action_t::NOTIFY_INPUT)));
+            }
+        }
+    }
+    void notify_downstream(nodeid_t blkid)
+    {
+        // Find whether this block has any downstream neighbors
+        auto search = d_block_sched_map.find(blkid);
+        if (search != d_block_sched_map.end()) {
+            // Entry in the map exists, are there any entries
+            if (!search->second.downstream_neighbor_scheds.empty()) {
+
+                for (auto sched : search->second.downstream_neighbor_scheds) {
+                    // Notify upstream neighbor
+                    gr_log_debug(_debug_logger,
+                                 "Notifying neighbor sched {} because of work "
+                                 "done on block id {}",
+                                 sched->name(),
+                                 blkid);
+                    sched->push_message(std::make_shared<scheduler_action>(
+                        scheduler_action(scheduler_action_t::NOTIFY_OUTPUT)));
+                }
+            }
+        }
+    }
+    void notify_neighbors(nodeid_t blkid)
+    {
+        notify_upstream(blkid);
+        notify_downstream(blkid);
+    }
 
 private:
     flat_graph_sptr d_fg;
@@ -409,39 +460,21 @@ private:
 
                         // If work was done in this iteration, tell my own thread
                         // to go for it again
-                        bool notify_myself = false;
                         for (auto elem : s) {
                             if (elem.second == scheduler_iteration_status::READY) {
-                                notify_myself = true;
+                                top->notify_self();
+                                top->notify_neighbors(elem.first);
+                            } else if (elem.second ==
+                                       scheduler_iteration_status::BLKD_IN) {
+                                top->notify_upstream(elem.first);
+                            } else if (elem.second ==
+                                       scheduler_iteration_status::BLKD_OUT) {
+                                top->notify_downstream(elem.first);
                             }
                         }
-                        if (notify_myself) {
-                            top->push_message(std::make_shared<scheduler_action>(
-                                scheduler_action(scheduler_action_t::NOTIFY_ALL)));
-                        }
+                    }
 
-                        // Blocks that did work need to notify the neighbor schedulers
-                        // that work was done
-                        for (auto elem : s) {
-                            if (elem.second == scheduler_iteration_status::READY ||
-                                elem.second == scheduler_iteration_status::BLKD_IN ||
-                                elem.second == scheduler_iteration_status::BLKD_OUT) {
-                                auto search = top->d_block_sched_map.find(elem.first);
-                                if (search != top->d_block_sched_map.end()) {
-                                    gr_log_debug(top->_debug_logger,
-                                                 "Notifying neighbor {} because of work "
-                                                 "done on block id {}",
-                                                 search->second->name(),
-                                                 elem.first);
-                                    search->second->push_message(
-                                        std::make_shared<scheduler_action>(
-                                            scheduler_action(
-                                                scheduler_action_t::NOTIFY_ALL)));
-                                }
-                            }
-                        }
-
-                    } break;
+                    break;
                     }
                     break;
                 }
@@ -458,6 +491,6 @@ private:
             }
         }
     }
-};
+}; // namespace schedulers
 } // namespace schedulers
 } // namespace gr

@@ -9,9 +9,9 @@
 #include <gnuradio/callback.hpp>
 #include <gnuradio/concurrent_queue.hpp>
 #include <gnuradio/flat_graph.hpp>
+#include <gnuradio/flowgraph_monitor.hpp>
 #include <gnuradio/logging.hpp>
 #include <gnuradio/scheduler_message.hpp>
-#include <gnuradio/flowgraph_monitor.hpp>
 
 namespace gr {
 
@@ -35,8 +35,31 @@ struct scheduler_sync {
     int id;
 };
 
+/**
+ * @brief Keep track of upstream and downstream neighbors for a block
+ * 
+ * A block can only have one upstream neighbor
+ * 
+ */
+struct neighbor_scheduler_info {
+    std::shared_ptr<scheduler> upstream_neighbor_sched = nullptr;
+    nodeid_t upstream_neighbor_blkid = -1;
+    std::vector<std::shared_ptr<scheduler>> downstream_neighbor_scheds;
+    std::vector<nodeid_t> downstream_neighbor_blkids;
 
-typedef std::map<nodeid_t, std::shared_ptr<scheduler>> block_scheduler_map;
+    void set_upstream(std::shared_ptr<scheduler> sched, nodeid_t blkid){
+        upstream_neighbor_sched = sched;
+        upstream_neighbor_blkid = blkid;
+    }
+
+    void add_downstream(std::shared_ptr<scheduler> sched, nodeid_t blkid){
+        downstream_neighbor_scheds.push_back(sched);
+        downstream_neighbor_blkids.push_back(blkid);
+    }
+};
+
+
+typedef std::map<nodeid_t, neighbor_scheduler_info> block_scheduler_map;
 
 class scheduler : public std::enable_shared_from_this<scheduler>
 {
@@ -56,9 +79,10 @@ public:
     };
     virtual ~scheduler();
     std::shared_ptr<scheduler> base() { return shared_from_this(); }
-    virtual void initialize(flat_graph_sptr fg,
-                            flowgraph_monitor_sptr fgmon,
-                            block_scheduler_map scheduler_adapter_map = block_scheduler_map()) = 0;
+    virtual void
+    initialize(flat_graph_sptr fg,
+               flowgraph_monitor_sptr fgmon,
+               block_scheduler_map scheduler_adapter_map = block_scheduler_map()) = 0;
     virtual void start() = 0;
     virtual void stop() = 0;
     virtual void wait() = 0;

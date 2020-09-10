@@ -53,7 +53,7 @@ int main(int argc, char* argv[])
 
 
     {
-        int samples = 100;
+        int samples = 100000;
         float k = 100.0;
         std::vector<float> input_data(samples);
         std::vector<float> expected_output(samples);

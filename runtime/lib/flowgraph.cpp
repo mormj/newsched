@@ -44,7 +44,7 @@ void flowgraph::partition(std::vector<domain_conf>& confs)
     std::vector<scheduler_sptr> partition_scheds;
     std::vector<scheduler_sptr> crossing_scheds;
 
-    std::map<nodeid_t, scheduler_sptr> block_scheduler_map;
+    std::map<nodeid_t, scheduler_sptr> block_to_scheduler_map;
 
     for (auto& conf : confs) {
 
@@ -57,7 +57,7 @@ void flowgraph::partition(std::vector<domain_conf>& confs)
         for (auto b : blocks)        // for each of the blocks in the tuple
         {
             // Store the block to scheduler mapping for later use
-            block_scheduler_map[b->id()] = sched;
+            block_to_scheduler_map[b->id()] = sched;
 
             for (auto input_port : b->input_stream_ports()) {
                 auto edges = find_edge(input_port);
@@ -93,8 +93,8 @@ void flowgraph::partition(std::vector<domain_conf>& confs)
     //   2.  Outputs that cross domains can only be mapped one input
     //   3.  Fixed client/server relationship - limited configuration of DA
 
-    std::map<scheduler_sptr, std::map<nodeid_t, scheduler_sptr>>
-        block_scheduler_map_per_scheduler;
+    std::map<scheduler_sptr, std::map<nodeid_t, neighbor_scheduler_info>>
+        neighbor_map_per_scheduler;
 
     int crossing_index = 0;
     for (auto c : domain_crossings) {
@@ -172,12 +172,13 @@ void flowgraph::partition(std::vector<domain_conf>& confs)
         auto dst_block_id = c.dst().node()->id();
         auto src_block_id = c.src().node()->id();
 
-        block_scheduler_map_per_scheduler[block_scheduler_map[dst_block_id]]
-                                         [dst_block_id] =
-                                             block_scheduler_map[src_block_id];
-        block_scheduler_map_per_scheduler[block_scheduler_map[src_block_id]]
-                                         [src_block_id] =
-                                             block_scheduler_map[dst_block_id];
+        neighbor_map_per_scheduler[block_to_scheduler_map[dst_block_id]]
+                                         [dst_block_id].set_upstream(
+                                             block_to_scheduler_map[src_block_id], src_block_id);
+
+        neighbor_map_per_scheduler[block_to_scheduler_map[src_block_id]]
+                                         [src_block_id].add_downstream(
+                                             block_to_scheduler_map[dst_block_id], dst_block_id);
 
         crossing_index++;
     }
@@ -188,7 +189,7 @@ void flowgraph::partition(std::vector<domain_conf>& confs)
         partition_scheds[i]->initialize(
             d_flat_subgraphs[i],
             d_fgmon,
-            block_scheduler_map_per_scheduler[partition_scheds[i]]);
+            neighbor_map_per_scheduler[partition_scheds[i]]);
     }
 }
 
