@@ -12,7 +12,7 @@ namespace gr {
 
 namespace schedulers {
 
-class scheduler_default_inner : public scheduler
+class scheduler_st : public scheduler
 {
 private:
     std::string _name;
@@ -23,16 +23,16 @@ public:
     static const int s_min_items_to_process = 1;
     const int s_max_buf_items; // = s_fixed_buf_size / 2;
 
-    typedef std::shared_ptr<scheduler_default_inner> sptr;
+    typedef std::shared_ptr<scheduler_st> sptr;
 
-    scheduler_default_inner(const std::string name = "default_inner",
+    scheduler_st(const std::string name = "single_threaded",
                             const unsigned int fixed_buf_size = 8192)
         : scheduler(name),
           s_fixed_buf_size(fixed_buf_size),
           s_max_buf_items(fixed_buf_size / 2)
     {
     }
-    ~scheduler_default_inner(){
+    ~scheduler_st(){
 
     };
 
@@ -441,7 +441,7 @@ private:
     bool d_thread_stopped = false;
 
 
-    static void thread_body(scheduler_default_inner* top)
+    static void thread_body(scheduler_st* top)
     {
         int num_empty = 0;
         bool work_done = false;

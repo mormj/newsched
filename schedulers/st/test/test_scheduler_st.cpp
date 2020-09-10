@@ -11,13 +11,13 @@
 #include <gnuradio/domain_adapter_shm.hpp>
 #include <gnuradio/flowgraph.hpp>
 #include <gnuradio/logging.hpp>
-#include <gnuradio/schedulers/default/inner.hpp>
+#include <gnuradio/schedulers/st/scheduler_st.hpp>
 
 using namespace gr;
 
 int main(int argc, char* argv[])
 {
-    auto logger = logging::get_logger("TEST_INNER", "debug");
+    auto logger = logging::get_logger("TEST_SCHED_ST", "debug");
 
     if (0) {
         int samples = 10000;
@@ -38,8 +38,8 @@ int main(int argc, char* argv[])
         fg->connect(mult, 0, head, 0);
         fg->connect(head, 0, snk, 0);
 
-        std::shared_ptr<schedulers::scheduler_default_inner> sched(
-            new schedulers::scheduler_default_inner());
+        std::shared_ptr<schedulers::scheduler_st> sched(
+            new schedulers::scheduler_st());
         fg->set_scheduler(sched);
 
         fg->validate();
@@ -72,8 +72,8 @@ int main(int argc, char* argv[])
         fg->connect(mult2, 0, head, 0);
         fg->connect(head, 0, snk, 0);
 
-        auto sched1 = std::make_shared<schedulers::scheduler_default_inner>("sched1");
-        auto sched2 = std::make_shared<schedulers::scheduler_default_inner>("sched2");
+        auto sched1 = std::make_shared<schedulers::scheduler_st>("sched1");
+        auto sched2 = std::make_shared<schedulers::scheduler_st>("sched2");
 
         fg->add_scheduler(sched1);
         fg->add_scheduler(sched2);
@@ -114,7 +114,7 @@ int main(int argc, char* argv[])
         fg->connect(throttle, 0, snk, 0);
 
         auto sched1 =
-            std::make_shared<schedulers::scheduler_default_inner>("sched1", 8192);
+            std::make_shared<schedulers::scheduler_st>("sched1", 8192);
         fg->add_scheduler(sched1);
 
         fg->validate();
