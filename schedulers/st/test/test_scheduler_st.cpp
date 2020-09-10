@@ -19,6 +19,7 @@ int main(int argc, char* argv[])
 {
     auto logger = logging::get_logger("TEST_SCHED_ST", "debug");
 
+    // Basic test of the single threaded scheduler single instance
     if (0) {
         int samples = 10000;
         float k = 100.0;
@@ -51,6 +52,7 @@ int main(int argc, char* argv[])
             logger, "valid output: {}, {}", snk_data == expected_output, snk_data.size());
     }
 
+    // Split the blocks across two instances using domain adapters
     if (1) {
         int samples = 1000000;
         float k = 100.0;
@@ -95,6 +97,7 @@ int main(int argc, char* argv[])
             logger, "valid output: {}, {}", snk_data == expected_output, snk_data.size());
     }
 
+    // Asynchronous parameter queries and changes
     if (0) {
         int samples = 100000;
         float k = 100.0;
