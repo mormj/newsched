@@ -19,6 +19,7 @@ target_include_directories(gnuradio-runtime
   PUBLIC
   $<INSTALL_INTERFACE:include>
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/../include>
+  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/../../pmt/include>
   PRIVATE
   ${CMAKE_CURRENT_SOURCE_DIR}
   ${YAML_CPP_INCLUDE_DIR}
@@ -26,6 +27,7 @@ target_include_directories(gnuradio-runtime
 
 target_link_libraries(gnuradio-runtime
 PUBLIC
+pmt
 Volk::volk
 spdlog::spdlog
 ZeroMQ::ZeroMQ

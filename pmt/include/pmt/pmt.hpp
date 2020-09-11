@@ -1,3 +1,5 @@
+#pragma once
+
 #include <any>
 #include <complex>
 #include <map>
@@ -69,6 +71,7 @@ protected:
 };
 
 typedef std::shared_ptr<pmt_base> pmt_sptr;
+typedef pmt_sptr pmt_t;
 
 template <class T>
 class pmt_scalar : public pmt_base

@@ -84,7 +84,7 @@ public:
         }
 
         for (auto& b : fg->calc_used_blocks()) {
-            b->set_scheduler(base());
+            //b->set_scheduler(base()); // should already be set from the flowgraph partitioning
             d_blocks.push_back(b);
             d_block_id_to_block_map[b->id()] = b;
 
@@ -240,7 +240,8 @@ public:
                 continue;
             }
 
-            if (ready) {
+            // if there is work to be done
+            if (ready && !(work_input.empty() && work_output.empty())) { 
                 gr_log_debug(_debug_logger, "do_work for {}", b->alias());
                 work_return_code_t ret = b->do_work(work_input, work_output);
                 gr_log_debug(_debug_logger, "do_work returned {}", ret);
@@ -395,6 +396,20 @@ public:
     {
         downstream_sched->push_message(std::make_shared<scheduler_action>(
             scheduler_action(scheduler_action_t::NOTIFY_OUTPUT)));
+    }
+
+    void handle_async_message(std::shared_ptr<async_message> item)
+    {
+
+        gr_log_info(_debug_logger,
+                     "handle async message from block {} port {}",
+                     item->blkid,
+                     item->port_name);
+
+        // Get the PMT to the correct block handler
+        d_block_id_to_block_map[item->blkid]->on_async_message(item->data, item->port_name);
+
+
     }
 
     void handle_parameter_query(std::shared_ptr<param_query_action> item)
@@ -583,6 +598,11 @@ private:
                     }
                     break;
                 }
+                case scheduler_message_t::ASYNC_MESSAGE: {
+                    // Query the state of a parameter on a block
+                    top->handle_async_message(
+                        std::static_pointer_cast<async_message>(msg));
+                } break;
                 case scheduler_message_t::PARAMETER_QUERY: {
                     // Query the state of a parameter on a block
                     top->handle_parameter_query(

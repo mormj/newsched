@@ -36,6 +36,12 @@ public:
         ptr->register_callback("do_a_bunch_of_things", [ptr](auto args) {
             return ptr->handle_do_a_bunch_of_things(args); });
 
+
+
+        ptr->add_port(message_port::make("foo", port_direction_t::INPUT));
+        ptr->set_msg_handler("foo", [ptr](pmt::pmt_t msg) { ptr->handle_foo(msg); });
+        // ptr->set_msg_handler("foo", ptr->handle_foo);
+
         return ptr;
 
     }
@@ -60,6 +66,11 @@ public:
     double do_a_bunch_of_things(const int x, const double y, const std::vector<gr_complex>& z);
     void set_k(T k) {return request_parameter_change<T>(params::id_k, k);}
     T k() { return request_parameter_query<T>(params::id_k); }
+
+    void handle_foo(pmt::pmt_t msg)
+    {
+        std::cout << "Got msg with: " << std::any_cast<float>(msg->object()) << std::endl;
+    }
 
 private:
 

@@ -23,10 +23,10 @@ public:
     {
     }
 
-    auto sched() { return _sched; }
-    auto blocks() { return _blocks; }
-    auto da_conf() { return _da_conf; }
-    auto da_edge_confs() { return _da_edge_confs; }
+    auto sched() const { return _sched; }
+    auto blocks() const { return _blocks; }
+    auto da_conf() const { return _da_conf; }
+    auto da_edge_confs() const { return _da_edge_confs; }
 
 private:
     scheduler_sptr _sched;

@@ -5,8 +5,27 @@
 
 namespace gr {
 // block::~block() {}
-block::block(const std::string& name) : node(name), d_tag_propagation_policy(tag_propagation_policy_t::TPP_ALL_TO_ALL) {}
+block::block(const std::string& name)
+    : node(name), d_tag_propagation_policy(tag_propagation_policy_t::TPP_ALL_TO_ALL)
+{
 
+}
+
+void block::message_port_pub(const std::string& port_name, pmt::pmt_sptr msg)
+{
+    // call back to the scheduler if ptr is not null
+    if (d_running) {
+        auto pub_port = get_port(port_name, port_type_t::MESSAGE, port_direction_t::OUTPUT);
+        auto pub_msg_port = std::static_pointer_cast<message_port>(pub_port);
+        for (auto& tgt: pub_msg_port->targets())
+        {
+            // construct the message to go onto the scheduler msgq
+            tgt->sched->push_message(std::make_shared<async_message>(
+                tgt->blkid, tgt->port_name, msg));
+        }
+
+    } 
+}
 
 template <class T>
 void block::request_parameter_change(int param_id, T new_value)
@@ -46,8 +65,7 @@ T block::request_parameter_query(int param_id)
             cv.notify_one();
         };
 
-        p_scheduler->request_parameter_query(
-            id(), param_action<T>::make(param_id), lam);
+        p_scheduler->request_parameter_query(id(), param_action<T>::make(param_id), lam);
 
         std::unique_lock<std::mutex> lk(m);
         cv.wait(lk);

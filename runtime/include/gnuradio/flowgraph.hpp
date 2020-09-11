@@ -45,13 +45,13 @@ private:
 public:
     flowgraph() { set_alias("flowgraph"); };
     typedef std::shared_ptr<flowgraph> sptr;
-    virtual ~flowgraph() { _monitor_thread_stopped = true; };
+    virtual ~flowgraph();
     void set_scheduler(scheduler_sptr sched);
     void set_schedulers(std::vector<scheduler_sptr> sched);
     void add_scheduler(scheduler_sptr sched);
     void clear_schedulers();
-    void partition(std::vector<domain_conf>& confs);
-    void validate();
+    void partition(const std::vector<domain_conf>& confs = std::vector<domain_conf>());
+    // void validate();
     void start();
     void stop();
     void wait();

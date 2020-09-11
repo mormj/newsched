@@ -19,9 +19,9 @@
 #include <gnuradio/callback.hpp>
 #include <gnuradio/gpdict.hpp>
 #include <gnuradio/io_signature.hpp>
+#include <gnuradio/message_port.hpp>
 #include <gnuradio/node.hpp>
 #include <gnuradio/parameter.hpp>
-
 
 namespace gr {
 
@@ -32,6 +32,7 @@ class scheduler;
  *
  */
 enum class work_return_code_t {
+    ERROR = -100,
 
     WORK_INSUFFICIENT_OUTPUT_ITEMS =
         -3, /// work requires a larger output buffer to produce output
@@ -65,6 +66,8 @@ private:
 
     std::map<std::string, block_callback_fcn>
         _callback_function_map; // callback_function_map["mult0"]["do_something"](x,y,z)
+    std::map<std::string, block_async_msg_fcn> _async_function_map;
+    std::map<std::string, param_sptr> _port_param_map;
 
 protected:
     // These are overridden by the derived class
@@ -81,7 +84,15 @@ protected:
 
     parameter_config parameters;
 
-    void add_param(param_sptr p) { parameters.add(p); }
+    void add_param(param_sptr p)
+    {
+        parameters.add(p);
+        // Every block gets a message port for making parameter changes
+        add_port(message_port::make("set_" + p->name(), port_direction_t::INPUT));
+
+        // Since this port is a set_parameter type, store the parameter with the port name
+        _port_param_map["set_" + p->name()] = p;
+    }
 
     std::shared_ptr<scheduler> p_scheduler = nullptr;
 
@@ -91,6 +102,12 @@ protected:
         _callback_function_map[cb_name] = fcn;
     }
 
+    void register_async_handler(const std::string& port_name, block_async_msg_fcn fcn)
+    {
+        _async_function_map[port_name] = fcn;
+    }
+
+    void message_port_pub(const std::string& port_name, pmt::pmt_sptr msg);
 
 public:
     /**
@@ -161,7 +178,11 @@ public:
      * @return work_return_code_t
      */
     virtual work_return_code_t work(std::vector<block_work_input>& work_input,
-                                    std::vector<block_work_output>& work_output) = 0;
+                                    std::vector<block_work_output>& work_output)
+    {
+        throw std::runtime_error("block::general_work() not implemented");
+        return work_return_code_t::ERROR;
+    };
 
     /**
      * @brief Wrapper for work to perform special checks and take care of special
@@ -185,6 +206,21 @@ public:
      *
      * @param params
      */
+    virtual void on_async_message(pmt::pmt_t msg, const std::string& port_name)
+    {
+        if (_port_param_map.count(port_name))
+        {
+            auto param = _port_param_map[port_name];
+            auto action = std::make_shared<param_action_base>(  param->id(), msg->object(), 0 );
+            on_parameter_change(action);
+        }
+        else if (_async_function_map.count(port_name)) {
+            _async_function_map[port_name](msg);
+        } 
+        else {
+            throw std::runtime_error("Async message handler not registered");
+        }
+    }
 
     virtual void on_parameter_change(param_action_sptr action)
     {
@@ -207,11 +243,17 @@ public:
 
 
     void set_scheduler(std::shared_ptr<scheduler> sched) { p_scheduler = sched; }
+    std::shared_ptr<scheduler> get_scheduler() { return p_scheduler; }
 
     template <class T>
     T request_parameter_query(int param_id);
     template <class T>
     void request_parameter_change(int param_id, T new_value);
+
+    void set_msg_handler(const std::string& port_name, block_async_msg_fcn fcn)
+    {
+        register_async_handler(port_name, fcn);
+    }
 };
 
 typedef block::sptr block_sptr;

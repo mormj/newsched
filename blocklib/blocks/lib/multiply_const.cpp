@@ -16,8 +16,7 @@ namespace gr {
 namespace blocks {
 
 template <>
-multiply_const<float>::multiply_const()
-    : sync_block("multiply_const_ff")
+multiply_const<float>::multiply_const() : sync_block("multiply_const_ff")
 {
     const int alignment_multiple = volk_get_alignment() / sizeof(float);
     set_alignment(std::max(1, alignment_multiple));
@@ -40,8 +39,7 @@ multiply_const<float>::work(std::vector<block_work_input>& work_input,
 }
 
 template <>
-multiply_const<gr_complex>::multiply_const()
-    : sync_block("multiply_const_cc")
+multiply_const<gr_complex>::multiply_const() : sync_block("multiply_const_cc")
 {
     const int alignment_multiple = volk_get_alignment() / sizeof(gr_complex);
     set_alignment(std::max(1, alignment_multiple));
@@ -64,10 +62,8 @@ multiply_const<gr_complex>::work(std::vector<block_work_input>& work_input,
 
 
 template <class T>
-multiply_const<T>::multiply_const()
-    : sync_block("multiply_const")
+multiply_const<T>::multiply_const() : sync_block("multiply_const")
 {
-
 }
 
 template <class T>

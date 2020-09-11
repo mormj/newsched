@@ -98,7 +98,24 @@ public:
 
         return result;
     }
+    std::vector<port_sptr> input_message_ports()
+    {
+        std::vector<port_sptr> result;
+        for (auto& p : d_input_ports)
+            if (p->type() == port_type_t::MESSAGE)
+                result.push_back(p);
 
+        return result;
+    }
+    std::vector<port_sptr> output_message_ports()
+    {
+        std::vector<port_sptr> result;
+        for (auto& p : d_output_ports)
+            if (p->type() == port_type_t::MESSAGE)
+                result.push_back(p);
+
+        return result;
+    }
     std::vector<size_t> sizeof_input_stream_ports()
     {
         std::vector<size_t> result;
@@ -136,7 +153,7 @@ public:
         d_id = id;
     }
 
-    port_sptr get_port(std::string& name, port_type_t type, port_direction_t direction)
+    port_sptr get_port(const std::string& name, port_type_t type, port_direction_t direction)
     {
         auto pred = [name, type, direction](port_sptr p) {
             return (p->type() == type && p->direction() == direction &&

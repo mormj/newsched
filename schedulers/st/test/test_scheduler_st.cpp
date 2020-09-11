@@ -8,6 +8,7 @@
 #include <gnuradio/blocklib/blocks/throttle.hpp>
 #include <gnuradio/blocklib/blocks/vector_sink.hpp>
 #include <gnuradio/blocklib/blocks/vector_source.hpp>
+#include <gnuradio/blocklib/blocks/msg_strobe.hpp>
 #include <gnuradio/domain_adapter_shm.hpp>
 #include <gnuradio/flowgraph.hpp>
 #include <gnuradio/logging.hpp>
@@ -43,7 +44,7 @@ int main(int argc, char* argv[])
             new schedulers::scheduler_st());
         fg->set_scheduler(sched);
 
-        fg->validate();
+        fg->partition();
         fg->start();
         fg->wait();
 
@@ -53,7 +54,7 @@ int main(int argc, char* argv[])
     }
 
     // Split the blocks across two instances using domain adapters
-    if (1) {
+    if (0) {
         int samples = 1000000;
         float k = 100.0;
         std::vector<float> input_data(samples);
@@ -120,7 +121,7 @@ int main(int argc, char* argv[])
             std::make_shared<schedulers::scheduler_st>("sched1", 8192);
         fg->add_scheduler(sched1);
 
-        fg->validate();
+        fg->partition();
 
         // fg->validate();
         fg->start();
@@ -143,6 +144,52 @@ int main(int argc, char* argv[])
             std::this_thread::sleep_for(std::chrono::milliseconds(300));
 
             k += 1.0;
+        }
+
+        fg->stop();
+
+        std::cout << snk->data().size();
+    }
+
+    // Message interface
+    if (1) {
+        int samples = 100000;
+        float k = 100.0;
+        std::vector<float> input_data(samples);
+        for (int i = 0; i < samples; i++) {
+            input_data[i] = (float)i;
+        }
+        auto src = blocks::vector_source_f::make(input_data, true);
+        auto strobe = blocks::msg_strobe::make(pmt::pmt_scalar<float>::make(3.0), 1000);
+        auto mult = blocks::multiply_const_ff::make(k);
+        auto throttle = blocks::throttle::make(sizeof(float), 10000);
+        // auto snk = blocks::null_sink::make(sizeof(float));
+        auto snk = blocks::vector_sink_f::make();
+
+        auto fg(std::make_shared<flowgraph>());
+        fg->connect(src, 0, mult, 0);
+        fg->msg_connect(strobe, "strobe", mult, "set_k");
+        fg->msg_connect(strobe, "strobe", mult, "foo");
+        fg->connect(mult, 0, throttle, 0);
+        fg->connect(throttle, 0, snk, 0);
+
+        auto sched1 =
+            std::make_shared<schedulers::scheduler_st>("sched1", 8192);
+        fg->add_scheduler(sched1);
+
+        fg->partition();
+
+        // fg->validate();
+        fg->start();
+        auto start = std::chrono::steady_clock::now();
+
+        while (true) {
+
+            if (std::chrono::steady_clock::now() - start > std::chrono::seconds(30))
+                break;
+
+            std::this_thread::sleep_for(std::chrono::milliseconds(300));
+            std::cout << "query k is: " << mult->k() << std::endl;
         }
 
         fg->stop();

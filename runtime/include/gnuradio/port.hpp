@@ -8,6 +8,8 @@
 namespace gr {
 
 class node; // forward declaration for storing parent pointer
+typedef uint32_t nodeid_t;
+class scheduler; // forware declaration for storing target scheduler
 
 enum class port_type_t { STREAM, PACKET, MESSAGE };
 
@@ -34,19 +36,22 @@ protected:
     int _multiplicity; // port can be replicated as in grc
     size_t _datasize;
     size_t _itemsize; // data size across all dims
+    bool _optional;   // is connection to this port required
 
 public:
     typedef std::shared_ptr<port_base> sptr;
     static sptr make(const std::string& name,
-              //  std::shared_ptr<node> parent,
-              const port_direction_t direction,
-              const param_type_t data_type = param_type_t::CFLOAT,
-              //  const std::type_index T
-              const port_type_t port_type = port_type_t::STREAM,
-              const std::vector<size_t>& dims = std::vector<size_t>{ 1 },
-              const int multiplicity = 1)
+                     //  std::shared_ptr<node> parent,
+                     const port_direction_t direction,
+                     const param_type_t data_type = param_type_t::CFLOAT,
+                     //  const std::type_index T
+                     const port_type_t port_type = port_type_t::STREAM,
+                     const std::vector<size_t>& dims = std::vector<size_t>{ 1 },
+                     const int multiplicity = 1,
+                     const bool optional = false)
     {
-        return std::make_shared<port_base>(port_base(name, direction, data_type, port_type, dims, multiplicity));
+        return std::make_shared<port_base>(port_base(
+            name, direction, data_type, port_type, dims, multiplicity, optional));
     }
 
     port_base(const std::string& name,
@@ -56,14 +61,16 @@ public:
               //  const std::type_index T
               const port_type_t port_type = port_type_t::STREAM,
               const std::vector<size_t>& dims = std::vector<size_t>{ 1 },
-              const int multiplicity = 1)
+              const int multiplicity = 1,
+              const bool optional = false)
         : _name(name),
           //   _parent(parent),
           _direction(direction),
           _data_type(data_type),
           _port_type(port_type),
           _dims(dims),
-          _multiplicity(multiplicity)
+          _multiplicity(multiplicity),
+          _optional(optional)
     {
         // _type_info = param_type_info(_data_type); // might not be needed
         _datasize = parameter_functions::param_size_info(_data_type);
@@ -77,7 +84,8 @@ public:
               const port_direction_t direction,
               const size_t itemsize,
               const port_type_t port_type = port_type_t::STREAM,
-              const int multiplicity = 1)
+              const int multiplicity = 1,
+              const bool optional = false)
         : _name(name),
           //   _parent(parent),
           _direction(direction),
@@ -85,10 +93,12 @@ public:
           _port_type(port_type),
           _multiplicity(multiplicity),
           _itemsize(itemsize),
-          _datasize(itemsize)
+          _datasize(itemsize),
+          _optional(optional)
     {
-
     }
+
+    virtual ~port_base(){};
 
     std::string name() { return _name; }
     std::string alias() { return _alias; }
@@ -101,7 +111,7 @@ public:
     size_t data_size() { return _datasize; }
     size_t itemsize() { return _itemsize; }
     std::vector<size_t> dims() { return _dims; }
-
+    bool optional() { return _optional; }
 };
 
 typedef port_base::sptr port_sptr;
@@ -119,17 +129,19 @@ public:
          const port_direction_t direction,
          const port_type_t port_type = port_type_t::STREAM,
          const std::vector<size_t>& dims = std::vector<size_t>(),
-         const int multiplicity = 1)
+         const int multiplicity = 1,
+         const bool optional = false)
     {
         return std::shared_ptr<port<T>>(
-            new port<T>(name, direction, port_type, dims, multiplicity));
+            new port<T>(name, direction, port_type, dims, multiplicity, optional));
     }
     port(const std::string& name,
          //    std::shared_ptr<node> parent,
          const port_direction_t direction,
          const port_type_t port_type = port_type_t::STREAM,
          const std::vector<size_t>& dims = std::vector<size_t>(),
-         const int multiplicity = 1)
+         const int multiplicity = 1,
+         const bool optional = false)
         : port_base(name,
                     //    parent,
                     direction,
@@ -137,7 +149,8 @@ public:
                         std::type_index(typeid(T))),
                     port_type,
                     dims,
-                    multiplicity)
+                    multiplicity,
+                    optional)
     {
     }
 };
@@ -154,24 +167,67 @@ public:
          const port_direction_t direction,
          const size_t itemsize,
          const port_type_t port_type = port_type_t::STREAM,
-         const int multiplicity = 1)
+         const int multiplicity = 1,
+         const bool optional = false)
     {
-        return std::shared_ptr<untyped_port>(
-            new untyped_port(name, direction, itemsize, port_type, multiplicity));
+        return std::shared_ptr<untyped_port>(new untyped_port(
+            name, direction, itemsize, port_type, multiplicity, optional));
     }
     untyped_port(const std::string& name,
-         //    std::shared_ptr<node> parent,
-         const port_direction_t direction,
-         const size_t itemsize,
-         const port_type_t port_type = port_type_t::STREAM,
-         const int multiplicity = 1)
-        : port_base(name,
-                    direction,
-                    itemsize,
-                    port_type,
-                    multiplicity)
+                 //    std::shared_ptr<node> parent,
+                 const port_direction_t direction,
+                 const size_t itemsize,
+                 const port_type_t port_type = port_type_t::STREAM,
+                 const int multiplicity = 1,
+                 const bool optional = false)
+        : port_base(name, direction, itemsize, port_type, multiplicity)
     {
     }
+};
+
+struct message_port_target {
+    std::shared_ptr<scheduler> sched;
+    std::string port_name;
+    nodeid_t blkid;
+
+    message_port_target(std::shared_ptr<scheduler> sched_,
+                        std::string port_name_,
+                        nodeid_t blkid_)
+        : sched(sched_), port_name(port_name_), blkid(blkid_)
+    {
+    }
+};
+
+class message_port : public port_base
+{
+public:
+    static std::shared_ptr<message_port>
+    make(const std::string& name,
+         const port_direction_t direction,
+         const bool optional = true)
+    {
+        return std::shared_ptr<message_port>(
+            new message_port(name, direction, optional));
+    }
+    message_port(const std::string& name,
+                 const port_direction_t direction,
+                 const bool optional = true)
+        : port_base(name, direction, 0, port_type_t::MESSAGE, 1, optional)
+    {
+    }
+
+    void clear_targets() { _targets.clear(); }
+    void add_target(std::shared_ptr<message_port_target> tgt)
+    {
+        _targets.push_back(tgt);
+    }
+    std::vector<std::shared_ptr<message_port_target>>& targets()
+    {
+        return _targets;
+    }
+
+protected:
+    std::vector<std::shared_ptr<message_port_target>> _targets;
 };
 
 } // namespace gr

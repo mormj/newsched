@@ -26,7 +26,8 @@ enum class param_type_t {
     BOOL,
     ENUM,
     STRING,
-    VOID
+    VOID,
+    PMT
 };
 
 
