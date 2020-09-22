@@ -1,0 +1,77 @@
+// example IDL file
+
+namespace pmtf;
+
+enum DataType : byte {     
+    UNKNOWN = 0,
+    FLOAT,
+    DOUBLE,
+    CFLOAT,
+    CDOUBLE,
+    INT8,
+    INT16,
+    INT32,
+    INT64,
+    UINT8,
+    UINT16,
+    UINT32,
+    UINT64,
+    BOOL,
+    ENUM,
+    STRING,
+    PMT,
+    ANY,
+    VOID }
+
+struct Complex {
+    re:float32;
+    im:float32;
+}
+
+struct Complexd {
+    re:float64;
+    im:float64;
+}
+
+// enum ContainerType : int8 { NONE = 0, VECTOR, MAP, DICT, PAIR, TUPLE }
+
+union Container { Scalar, Vector }
+
+table Scalar {
+    float_val:float32;
+    double_val:float64;
+    complex_val:Complex;
+    complexd_val:Complexd;
+    int8_val:int8;
+    int16_val:int16;
+    int32_val:int32;
+    int64_val:int64;
+    uint8_val: uint8;
+    uint16_val:uint16;
+    uint32_val:uint32;
+    uint64_val:uint64;
+    bool_val:bool;
+}
+
+table Vector {
+    float_val:[float32];
+    double_val:[float64];
+    complex_val:[Complex];
+    complexd_val:[Complexd];
+    int8_val:[int8];
+    int16_val:[int16];
+    int32_val:[int32];
+    int64_val:[int64];
+    uint8_val: [uint8];
+    uint16_val:[uint16];
+    uint32_val:[uint32];
+    uint64_val:[uint64];
+    bool_val:[bool];
+}
+
+table Pmt {
+    data_type:DataType;
+    container:Container;
+}
+
+root_type Pmt;
