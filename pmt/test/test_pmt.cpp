@@ -33,4 +33,6 @@ int main(int argc, char* argv[])
     }
     std::cout << std::endl;
 
+    std::cout << "data size: " << int_vec_pmt.size() << std::endl;
+
 }

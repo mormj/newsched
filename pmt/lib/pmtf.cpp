@@ -65,40 +65,60 @@ DataType pmt_functions::get_pmt_type_from_typeinfo(std::type_index t)
     return pmt_index_type_map[t];
 }
 
+///////////////////////////
+// Scalar
+///////////////////////////
+
 template <>
 void pmt_scalar<int32_t>::set_value(int32_t val)
 {
-    ScalarBuilder sb(_fbb);
-    sb.add_int32_val(val);
-    _container = sb.Finish().Union();
+    ScalarInt32Builder sb(_fbb);
+    sb.add_value(val);
+    _data = sb.Finish().Union();
     build();
 }
 
+template <>
+pmt_scalar<int32_t>::pmt_scalar(const int32_t& val) : pmt_base(Data_ScalarInt32)
+{
+    set_value(val);
+}
 
 template <>
 int32_t pmt_scalar<int32_t>::value()
 {
     auto pmt = GetPmt(_fbb.GetBufferPointer());
-    return pmt->container_as_Scalar()->int32_val();
+    return pmt->data_as_ScalarInt32()->value();
 }
+
+
+///////////////////////////
+// Vector
+///////////////////////////
 
 
 template <>
 void pmt_vector<int32_t>::set_value(const std::vector<int32_t>& val)
 {
     auto vec = _fbb.CreateVector(val.data(), val.size());
-    VectorBuilder vb(_fbb);
-    vb.add_int32_val(vec);
-    _container = vb.Finish().Union();
+    VectorInt32Builder vb(_fbb);
+    vb.add_value(vec);
+    _data = vb.Finish().Union();
     build();
 }
 
+template <>
+pmt_vector<int32_t>::pmt_vector(const std::vector<int32_t>& val)
+    : pmt_base(Data_VectorInt32)
+{
+    set_value(val);
+}
 
 template <>
 std::vector<int32_t>& pmt_vector<int32_t>::value()
 {
     auto pmt = GetPmt(_fbb.GetBufferPointer());
-    auto fb_vec = pmt->container_as_Vector()->int32_val();
+    auto fb_vec = pmt->data_as_VectorInt32()->value();
     _value.assign(fb_vec->begin(), fb_vec->end());
     return _value;
 }
@@ -107,9 +127,16 @@ template <>
 const int32_t* pmt_vector<int32_t>::data()
 {
     auto pmt = GetPmt(_fbb.GetBufferPointer());
-    auto fb_vec = pmt->container_as_Vector()->int32_val();
+    auto fb_vec = pmt->data_as_VectorInt32()->value();
     return fb_vec->data();
 }
 
+template <>
+size_t pmt_vector<int32_t>::size()
+{
+    auto pmt = GetPmt(_fbb.GetBufferPointer());
+    auto fb_vec = pmt->data_as_VectorInt32()->value();
+    return fb_vec->size();
+}
 
 } // namespace pmtf
