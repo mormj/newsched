@@ -1,3 +1,5 @@
+
+native_include "<complex>";
 // example IDL file
 
 namespace pmtf;
@@ -23,12 +25,17 @@ enum DataType : byte {
     ANY,
     VOID }
 
-struct Complex {
+struct Complex64 (native_type:"std::complex<float>") {
     re:float32;
     im:float32;
 }
 
-struct Complexd {
+// struct Complex64 {
+//     re:float32;
+//     im:float32;
+// }
+
+struct Complex128 (native_type:"std::complex<double>") {
     re:float64;
     im:float64;
 }
@@ -43,11 +50,11 @@ table ScalarFloat32 {
 table ScalarFloat64 {
     value:float64;
 }
-table ScalarComplex {
-    value:Complex;
+table ScalarComplex64 {
+    value:Complex64 (native_inline) ;
 }
-table ScalarComplexd {
-    value:Complexd;
+table ScalarComplex128 {
+    value:Complex128 (native_inline);
 }
 table ScalarInt8 {
     value:int8;
@@ -83,11 +90,11 @@ table VectorFloat32 {
 table VectorFloat64 {
     value:[float64];
 }
-table VectorComplex {
-    value:[Complex];
+table VectorComplex64 {
+    value:[Complex64];
 }
-table VectorComplexd {
-    value:[Complexd];
+table VectorComplex128 {
+    value:[Complex128];
 }
 table VectorInt8 {
     value:[int8];
@@ -118,11 +125,11 @@ table VectorBool {
 }
 
 
-union Data { ScalarFloat32, ScalarFloat64, ScalarComplex, ScalarComplexd, 
+union Data { ScalarFloat32, ScalarFloat64, ScalarComplex64, ScalarComplex128, 
 ScalarInt8, ScalarInt16, ScalarInt32, ScalarInt64, 
 ScalarUInt8, ScalarUInt16, ScalarUInt32, ScalarUInt64,
 ScalarBool,
-VectorFloat32, VectorFloat64, VectorComplex, VectorComplexd, 
+VectorFloat32, VectorFloat64, VectorComplex64, VectorComplex128, 
 VectorInt8, VectorInt16, VectorInt32, VectorInt64, 
 VectorUInt8, VectorUInt16, VectorUInt32, VectorUInt64,
 VectorBool

@@ -9,20 +9,18 @@
 #include <vector>
 #include <iostream>
 
+
+namespace flatbuffers {
+pmtf::Complex64 Pack(const std::complex<float> &obj) {
+  return pmtf::Complex64(obj.real(), obj.imag());
+}
+
+const std::complex<float> UnPack(const pmtf::Complex64 &obj) {
+  return std::complex<float>(obj.re(), obj.im());
+}
+}
+
 namespace pmtf {
-
-class pmt_functions
-{
-private:
-    static std::map<DataType, std::type_index> pmt_type_index_map;
-    static std::map<DataType, size_t> pmt_type_size_map;
-    static std::map<std::type_index, DataType> pmt_index_type_map;
-
-public:
-    static size_t pmt_size_info(DataType p);
-    static DataType get_pmt_type_from_typeinfo(std::type_index t);
-};
-
 
 class pmt_base
 {
@@ -110,4 +108,141 @@ public:
     std::vector<T> _value;
 };
 
+
+
 } // namespace pmtf
+
+#define IMPLEMENT_PMT_SCALAR(datatype, fbtype) \
+template <> \
+void pmt_scalar<datatype>::set_value(datatype val) \
+{ \
+    Scalar##fbtype##Builder sb(_fbb); \
+    sb.add_value(val); \
+    _data = sb.Finish().Union(); \
+    build(); \
+} \
+\
+template <> \
+pmt_scalar<datatype>::pmt_scalar(const datatype& val) : pmt_base(Data::Scalar##fbtype) \
+{ \
+    set_value(val); \
+} \
+\
+template <> \
+datatype pmt_scalar<datatype>::value() \
+{ \
+    auto pmt = GetPmt(_fbb.GetBufferPointer()); \
+    return pmt->data_as_Scalar##fbtype()->value(); \
+}
+
+
+// #define IMPLEMENT_PMT_SCALAR_CPLX(datatype, fbtype) \
+template <> \
+void pmt_scalar<datatype>::set_value(datatype val) \
+{ \
+    Scalar##fbtype##Builder sb(_fbb); \
+    sb.add_value((fbtype*)&val); \
+    _data = sb.Finish().Union(); \
+    build(); \
+} \
+\
+template <> \
+pmt_scalar<datatype>::pmt_scalar(const datatype& val) : pmt_base(Data::Scalar##fbtype) \
+{ \
+    set_value(val); \
+} \
+\
+template <> \
+datatype pmt_scalar<datatype>::value() \
+{ \
+    auto pmt = GetPmt(_fbb.GetBufferPointer()); \
+    return *((datatype *) (pmt->data_as_Scalar##fbtype()->value())); \
+}
+
+
+#define IMPLEMENT_PMT_VECTOR(datatype, fbtype) \
+template <> \
+void pmt_vector<datatype>::set_value(const std::vector<datatype>& val) \
+{ \
+    auto vec = _fbb.CreateVector(val.data(), val.size()); \
+    Vector##fbtype##Builder vb(_fbb); \
+    vb.add_value(vec); \
+    _data = vb.Finish().Union(); \
+    build(); \
+} \
+\
+template <> \
+pmt_vector<datatype>::pmt_vector(const std::vector<datatype>& val) \
+    : pmt_base(Data::Vector##fbtype) \
+{ \
+    set_value(val); \
+} \
+\
+template <> \
+std::vector<datatype>& pmt_vector<datatype>::value() \
+{ \
+    auto pmt = GetPmt(_fbb.GetBufferPointer()); \
+    auto fb_vec = pmt->data_as_Vector##fbtype()->value(); \
+    _value.assign(fb_vec->begin(), fb_vec->end()); \
+    return _value; \
+} \
+\
+template <> \
+const datatype* pmt_vector<datatype>::data() \
+{ \
+    auto pmt = GetPmt(_fbb.GetBufferPointer()); \
+    auto fb_vec = pmt->data_as_Vector##fbtype()->value(); \
+    return fb_vec->data(); \
+} \
+\
+template <> \
+size_t pmt_vector<datatype>::size() \
+{ \
+    auto pmt = GetPmt(_fbb.GetBufferPointer()); \
+    auto fb_vec = pmt->data_as_Vector##fbtype()->value(); \
+    return fb_vec->size(); \
+}
+
+
+#define IMPLEMENT_PMT_VECTOR_CPLX(datatype, fbtype) \
+template <> \
+void pmt_vector<datatype>::set_value(const std::vector<datatype>& val) \
+{ \
+    auto vec = _fbb.CreateVector((fbtype *)val.data(), val.size()); \
+    Vector##fbtype##Builder vb(_fbb); \
+    vb.add_value(vec); \
+    _data = vb.Finish().Union(); \
+    build(); \
+} \
+\
+template <> \
+pmt_vector<datatype>::pmt_vector(const std::vector<datatype>& val) \
+    : pmt_base(Data::Vector##fbtype) \
+{ \
+    set_value(val); \
+} \
+\
+template <> \
+std::vector<datatype>& pmt_vector<datatype>::value() \
+{ \
+    auto pmt = GetPmt(_fbb.GetBufferPointer()); \
+    auto fb_vec = pmt->data_as_Vector##fbtype()->value(); \
+    _value.assign(fb_vec->begin(), fb_vec->end()); \
+    return _value; \
+} \
+\
+template <> \
+const datatype* pmt_vector<datatype>::data() \
+{ \
+    auto pmt = GetPmt(_fbb.GetBufferPointer()); \
+    auto fb_vec = pmt->data_as_Vector##fbtype()->value(); \
+    return fb_vec->data(); \
+} \
+\
+template <> \
+size_t pmt_vector<datatype>::size() \
+{ \
+    auto pmt = GetPmt(_fbb.GetBufferPointer()); \
+    auto fb_vec = pmt->data_as_Vector##fbtype()->value(); \
+    return fb_vec->size(); \
+}

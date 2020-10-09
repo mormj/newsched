@@ -14,7 +14,7 @@ set(FBS_FILE ${CMAKE_CURRENT_SOURCE_DIR}/pmt.fbs)
 get_filename_component(generated_output_name ${FBS_FILE} NAME_WE)
 add_custom_command(OUTPUT ${OUTPUT_LOCATION}/${generated_output_name}_generated.h
     # COMMAND flatc -c --reflect-types --reflect-names --gen-object-api -o "${OUTPUT_LOCATION}/" "${FBS_FILE}"
-    COMMAND flatc -c "${FBS_FILE}"
+    COMMAND flatc -c --reflect-types --reflect-names --cpp-std 'c++17' "${FBS_FILE}"
     COMMENT "Building C++ header for flatbuffers definition ${FBS_FILE}"
     WORKING_DIRECTORY .
     DEPENDS "${FBS_FILE}"

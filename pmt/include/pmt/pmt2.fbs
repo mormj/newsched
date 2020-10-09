@@ -1,0 +1,37 @@
+
+native_include "<complex>";
+// example IDL file
+
+namespace pmtf;
+
+enum DataType : byte {     
+    UNKNOWN = 0,
+    FLOAT,
+    DOUBLE,
+ }
+
+struct Complex64 (native_type:"std::complex<float>") {
+    re:float32;
+    im:float32;
+}
+
+table ScalarComplex64 {
+    value:Complex64 (native_inline) ;
+}
+
+table VectorComplex64 {
+    value:[Complex64];
+}
+
+
+union Data {   ScalarComplex64,VectorComplex64
+}
+
+
+
+table Pmt {
+    // data_type:DataType;
+    data:Data;
+}
+
+root_type Pmt;
