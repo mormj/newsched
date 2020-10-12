@@ -269,14 +269,28 @@ public:
             }
 
             if (ready) {
-                gr_log_debug(_debug_logger, "do_work for {}", b->alias());
-                work_return_code_t ret = b->do_work(work_input, work_output);
-                gr_log_debug(_debug_logger, "do_work returned {}", ret);
+                work_return_code_t ret;
+                while (true) {
 
-                if (ret == work_return_code_t::WORK_DONE) {
-                    per_block_status[b->id()] = scheduler_iteration_status::DONE;
-                } else if (ret == work_return_code_t::WORK_OK) {
-                    per_block_status[b->id()] = scheduler_iteration_status::READY;
+                    gr_log_debug(_debug_logger, "do_work for {}", b->alias());
+                    ret = b->do_work(work_input, work_output);
+                    gr_log_debug(_debug_logger, "do_work returned {}", ret);
+
+
+                    if (ret == work_return_code_t::WORK_DONE) {
+                        per_block_status[b->id()] = scheduler_iteration_status::DONE;
+                        break;
+                    } else if (ret == work_return_code_t::WORK_OK) {
+                        per_block_status[b->id()] = scheduler_iteration_status::READY;
+                        break;
+                    } else if (ret == work_return_code_t::WORK_INSUFFICIENT_INPUT_ITEMS) {
+                        work_output[0].n_items >>= 1;
+
+                        if (work_output[0].n_items < 4) // min block size
+                        {
+                            break;
+                        }
+                    }
                 }
                 // TODO - handle READY_NO_OUTPUT
 

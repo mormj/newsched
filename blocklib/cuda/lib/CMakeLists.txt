@@ -16,20 +16,16 @@ add_library(gnuradio-blocklib-cuda-cu SHARED
   )
   target_compile_options(gnuradio-blocklib-cuda PRIVATE -Wno-deprecated-declarations)
 
-message(STATUS "%^@#$%@#$%@#$%@#$%")
-message(STATUS ${CUDA_INCLUDE_DIRS} )
-message(STATUS ${TensorRT_INCLUDE_DIR} )
-
 target_include_directories(gnuradio-blocklib-cuda
   PUBLIC
   $<INSTALL_INTERFACE:include>
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/../include>
   ${CMAKE_CURRENT_SOURCE_DIR}/../include/gnuradio/blocklib/cuda
+  ${CUDA_INCLUDE_DIRS} 
+  ${TensorRT_INCLUDE_DIR}
   PRIVATE
   ${PROJECT_SOURCE_DIR}/blocklib/common/include
   ${PROJECT_SOURCE_DIR}/runtime/include
-  ${CUDA_INCLUDE_DIRS} 
-  ${TensorRT_INCLUDE_DIR}
   )
 
   # TODO - learn how to include against runtime with INSTALL_INTERFACE

@@ -1,6 +1,6 @@
 #pragma once
 
-#include <gnuradio/sync_block.hpp>
+#include <gnuradio/block.hpp>
 
 
 #include <NvInfer.h>
@@ -16,7 +16,7 @@ namespace cuda {
 
 enum class memory_model_t { TRADITIONAL = 0, PINNED, UNIFIED };
 
-class infer : public sync_block
+class infer : public block
 {
 public:
     enum params : uint32_t { num_params };
@@ -55,6 +55,9 @@ public:
                      int dla_core);
     // ~infer() {};
 
+    work_return_code_t check_work_io(std::vector<block_work_input>& work_input,
+                                    std::vector<block_work_output>& work_output);
+                                    
     virtual work_return_code_t work(std::vector<block_work_input>& work_input,
                                     std::vector<block_work_output>& work_output);
 
@@ -74,11 +77,7 @@ private:
     int32_t d_dla_core{ -1 };     //!< Specify the DLA core to run network on.
 
     std::shared_ptr<nvinfer1::ICudaEngine>
-        d_engine; //!< The TensorRT engine used to run the network
-    std::string d_onnx_pathname;
-    int32_t d_batch_size;
-    uint64_t d_workspace_size;
-    memory_model_t d_memory_model;
+        _engine; //!< The TensorRT engine used to run the network
 
     SampleUniquePtr<nvinfer1::IExecutionContext> d_context;
 

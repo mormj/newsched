@@ -9,7 +9,13 @@ infer::infer(const std::string& onnx_pathname,
              memory_model_t memory_model,
              uint64_t workspace_size,
              int dla_core)
-    : sync_block("infer")
+    : block("infer"),
+      _onnx_pathname(onnx_pathname),
+      _engine(nullptr),
+      _memory_model(memory_model),
+      _workspace_size(workspace_size),
+      _dla_core(dla_core)
+
 {
 
     build();
@@ -28,19 +34,19 @@ infer::infer(const std::string& onnx_pathname,
 //! \param builder Pointer to the engine builder
 //!
 bool infer::constructNetwork(SampleUniquePtr<nvinfer1::IBuilder>& builder,
-                                  SampleUniquePtr<nvinfer1::INetworkDefinition>& network,
-                                  SampleUniquePtr<nvinfer1::IBuilderConfig>& config,
-                                  SampleUniquePtr<nvonnxparser::IParser>& parser)
+                             SampleUniquePtr<nvinfer1::INetworkDefinition>& network,
+                             SampleUniquePtr<nvinfer1::IBuilderConfig>& config,
+                             SampleUniquePtr<nvonnxparser::IParser>& parser)
 {
     auto parsed =
-        parser->parseFromFile(d_onnx_pathname.c_str(),
+        parser->parseFromFile(_onnx_pathname.c_str(),
                               static_cast<int>(sample::gLogger.getReportableSeverity()));
     if (!parsed) {
         return false;
     }
 
     // config->setMaxWorkspaceSize(2_GiB);
-    config->setMaxWorkspaceSize(d_workspace_size);
+    config->setMaxWorkspaceSize(_workspace_size);
     if (d_fp16) {
         config->setFlag(BuilderFlag::kFP16);
     }
@@ -59,7 +65,7 @@ bool infer::constructNetwork(SampleUniquePtr<nvinfer1::IBuilder>& builder,
 //!
 //! \details This function creates the Onnx MNIST network by parsing the Onnx model and
 //! builds
-//!          the engine that will be used to run MNIST (d_engine)
+//!          the engine that will be used to run MNIST (_engine)
 //!
 //! \return Returns true if the engine was created successfully and false otherwise
 //!
@@ -97,13 +103,13 @@ bool infer::build()
         return false;
     }
 
-    d_engine = std::shared_ptr<nvinfer1::ICudaEngine>(
+    _engine = std::shared_ptr<nvinfer1::ICudaEngine>(
         builder->buildEngineWithConfig(*network, *config), samplesCommon::InferDeleter());
-    if (!d_engine) {
+    if (!_engine) {
         return false;
     }
 
-    std::cout << "Max Batch Size: " << d_engine->getMaxBatchSize() << std::endl;
+    std::cout << "Max Batch Size: " << _engine->getMaxBatchSize() << std::endl;
     assert(network->getNbInputs() == 1);
     d_input_dims = network->getInput(0)->getDimensions();
     // assert(d_input_dims.nbDims == 4);
@@ -121,16 +127,16 @@ bool infer::build()
     d_output_vlen = d_outputH * d_outputW;
 
     d_context =
-        SampleUniquePtr<nvinfer1::IExecutionContext>(d_engine->createExecutionContext());
+        SampleUniquePtr<nvinfer1::IExecutionContext>(_engine->createExecutionContext());
     if (!d_context) {
         return false;
     }
 
-    auto nb = d_engine->getNbBindings();
+    auto nb = _engine->getNbBindings();
     for (auto i = 0; i < nb; i++) {
-        auto type = d_engine->getBindingDataType(i);
+        auto type = _engine->getBindingDataType(i);
         auto dims = d_context->getBindingDimensions(i);
-        int vecDim = d_engine->getBindingVectorizedDim(i);
+        int vecDim = _engine->getBindingVectorizedDim(i);
         // size_t vol = d_context || !d_batch_size ? 1 :
         // static_cast<size_t>(d_batch_size);
         size_t vol = 1; // ONNX Parser only supports explicit batch which means it is
@@ -138,14 +144,14 @@ bool infer::build()
         // size_t vol = d_batch_size;
         if (-1 != vecDim) // i.e., 0 != lgScalarsPerVector
         {
-            int scalarsPerVec = d_engine->getBindingComponentsPerElement(i);
+            int scalarsPerVec = _engine->getBindingComponentsPerElement(i);
             dims.d[vecDim] = samplesCommon::divUp(dims.d[vecDim], scalarsPerVec);
             vol *= scalarsPerVec;
         }
         vol *= samplesCommon::volume(dims);
 
         void* ptr;
-        switch (d_memory_model) {
+        switch (_memory_model) {
         case memory_model_t::TRADITIONAL:
             // Input memory will be explicitly set to device memory
 
@@ -196,10 +202,37 @@ bool infer::build()
     return true;
 }
 
+work_return_code_t infer::check_work_io(std::vector<block_work_input>& work_input,
+                                        std::vector<block_work_output>& work_output)
+{
+    // Instead of forecast, let's check what the scheduler gave us
+    //  and notify appropriately
+
+    // For this block, the number of outputs relative to the number of
+    // inputs is related to the parsed model
+
+    // Assuming that ninput_items > noutput_items
+    int nb = work_output[0].n_items / d_output_vlen; // number of input vectors (batch size)
+    int n_input_required = nb * d_input_vlen;
+    
+    if (n_input_required > work_input[0].n_items)
+    {
+        return work_return_code_t::WORK_INSUFFICIENT_INPUT_ITEMS;
+    }
+
+    return work_return_code_t::WORK_OK;
+}
 
 work_return_code_t infer::work(std::vector<block_work_input>& work_input,
                                std::vector<block_work_output>& work_output)
 {
+    auto ret = check_work_io(work_input, work_output);
+    if (ret != work_return_code_t::WORK_OK &&
+        ret != work_return_code_t::WORK_DONE)
+    {
+        return ret;
+    }
+
     const float* in = reinterpret_cast<const float*>(work_input[0].items);
     float* out = reinterpret_cast<float*>(work_output[0].items);
 
@@ -217,7 +250,7 @@ work_return_code_t infer::work(std::vector<block_work_input>& work_input,
         // Memcpy from host input buffers to device input buffers
         // d_buffers->copyInputToDevice();
 
-        if (d_memory_model == memory_model_t::TRADITIONAL) {
+        if (_memory_model == memory_model_t::TRADITIONAL) {
             cudaMemcpy(d_device_bindings[0],
                        in + b * in_sz,
                        in_sz * sizeof(float),
@@ -234,7 +267,7 @@ work_return_code_t infer::work(std::vector<block_work_input>& work_input,
         }
         cudaDeviceSynchronize();
 
-        if (d_memory_model == memory_model_t::TRADITIONAL) {
+        if (_memory_model == memory_model_t::TRADITIONAL) {
             cudaMemcpy(out + b * out_sz,
                        d_device_bindings[1],
                        out_sz * sizeof(float),
