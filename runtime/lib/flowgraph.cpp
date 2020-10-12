@@ -87,6 +87,32 @@ void flowgraph::partition(std::vector<domain_conf>& confs)
         partition_scheds.push_back(sched);
     }
 
+    int idx = 0;
+    for (auto& conf : confs) {
+        auto g = d_subgraphs[idx];
+
+        // see that all the blocks in conf->blocks() are in g, and if not, add them as
+        // orphan nodes
+
+        for (auto b : conf.blocks()) // for each of the blocks in the tuple
+        {
+            bool connected = false;
+            for (auto e : g->edges()) {
+                if (e.src().node() == b || e.dst().node() == b) {
+                    connected = true;
+                    break;
+                }
+            }
+
+            if (!connected)
+            {
+                g->add_orphan_node(b);
+            }
+        }
+
+        idx++;
+    }
+
     // Now, let's set up domain adapters at the domain crossings
     // Several assumptions are being made now:
     //   1.  All schedulers running on the same processor
@@ -172,13 +198,11 @@ void flowgraph::partition(std::vector<domain_conf>& confs)
         auto dst_block_id = c.dst().node()->id();
         auto src_block_id = c.src().node()->id();
 
-        neighbor_map_per_scheduler[block_to_scheduler_map[dst_block_id]]
-                                         [dst_block_id].set_upstream(
-                                             block_to_scheduler_map[src_block_id], src_block_id);
+        neighbor_map_per_scheduler[block_to_scheduler_map[dst_block_id]][dst_block_id]
+            .set_upstream(block_to_scheduler_map[src_block_id], src_block_id);
 
-        neighbor_map_per_scheduler[block_to_scheduler_map[src_block_id]]
-                                         [src_block_id].add_downstream(
-                                             block_to_scheduler_map[dst_block_id], dst_block_id);
+        neighbor_map_per_scheduler[block_to_scheduler_map[src_block_id]][src_block_id]
+            .add_downstream(block_to_scheduler_map[dst_block_id], dst_block_id);
 
         crossing_index++;
     }
@@ -186,10 +210,9 @@ void flowgraph::partition(std::vector<domain_conf>& confs)
     d_flat_subgraphs.clear();
     for (auto i = 0; i < partition_scheds.size(); i++) {
         d_flat_subgraphs.push_back(flat_graph::make_flat(d_subgraphs[i]));
-        partition_scheds[i]->initialize(
-            d_flat_subgraphs[i],
-            d_fgmon,
-            neighbor_map_per_scheduler[partition_scheds[i]]);
+        partition_scheds[i]->initialize(d_flat_subgraphs[i],
+                                        d_fgmon,
+                                        neighbor_map_per_scheduler[partition_scheds[i]]);
     }
 }
 

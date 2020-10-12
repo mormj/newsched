@@ -139,6 +139,8 @@ protected:
     node_vector_t _nodes;
     edge_vector_t _edges;
     node_vector_t _orphan_nodes;
+
+
 public:
     typedef std::shared_ptr<graph> sptr;
     static sptr make()
@@ -155,7 +157,7 @@ public:
 
         _edges.push_back(edge(src, dst));
         auto used_nodes = calc_used_nodes();
-        used_nodes.insert(used_nodes.end(), _orphan_nodes.begin(), _orphan_nodes.end());
+        // used_nodes.insert(used_nodes.end(), _orphan_nodes.begin(), _orphan_nodes.end());
         _nodes = used_nodes;
 
         std::map<std::string, int> name_count;
@@ -198,7 +200,10 @@ public:
     void disconnect(const node_endpoint& src, const node_endpoint& dst){};
     virtual void validate(){};
     virtual void clear(){};
-
+    void add_orphan_node(node_sptr orphan_node)
+    {
+        _orphan_nodes.push_back(orphan_node);
+    }
     // /**
     //  * @brief Return a flattened graph (all subgraphs reduced to their constituent
     //  blocks
@@ -221,6 +226,10 @@ public:
         for (edge_viter_t p = _edges.begin(); p != _edges.end(); p++) {
             tmp.push_back(p->src().node());
             tmp.push_back(p->dst().node());
+        }
+        for (auto n : _orphan_nodes)
+        {
+            tmp.push_back(n);
         }
 
         return unique_vector<node_sptr>(tmp);
