@@ -2,7 +2,7 @@
 #
 
 cmake_minimum_required(VERSION 3.10)
-project(newsched LANGUAGES CXX)
+project(newsched CXX CUDA)
 
 include(CheckLanguage)
 check_language(CUDA)

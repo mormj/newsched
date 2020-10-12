@@ -32,7 +32,7 @@ class scheduler;
  *
  */
 enum class work_return_code_t {
-
+    WORK_ERROR = -100,
     WORK_INSUFFICIENT_OUTPUT_ITEMS =
         -3, /// work requires a larger output buffer to produce output
     WORK_INSUFFICIENT_INPUT_ITEMS =
