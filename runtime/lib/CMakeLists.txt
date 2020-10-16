@@ -10,6 +10,8 @@ add_library(gnuradio-runtime SHARED
   logging.cpp
   scheduler.cpp
   realtime.cpp
+  pagesize.cpp
+  vmcirc_buffer.cpp
   )
 set_target_properties(gnuradio-runtime PROPERTIES
             CXX_STANDARD 17
