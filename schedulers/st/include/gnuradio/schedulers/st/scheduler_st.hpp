@@ -48,6 +48,10 @@ public:
         int nitems = s_fixed_buf_size * 2 / item_size;
 
         auto grblock = std::dynamic_pointer_cast<block>(e.src().node());
+        if (grblock == nullptr) // might be a domain adapter, not a block
+        {
+            grblock = std::dynamic_pointer_cast<block>(e.dst().node());
+        }
 
         // Make sure there are at least twice the output_multiple no. of items
         if (nitems < 2 * grblock->output_multiple()) // Note: this means output_multiple()
@@ -247,7 +251,6 @@ public:
             std::vector<block_work_input> work_input;   //(num_input_ports);
             std::vector<block_work_output> work_output; //(num_output_ports);
 
-            std::vector<buffer_sptr> bufs;
             // for each input port of the block
             bool ready = true;
             for (auto p : b->input_stream_ports()) {
@@ -261,8 +264,6 @@ public:
 
                 if (!ready)
                     break;
-
-                bufs.push_back(p_buf);
 
                 if (read_info.n_items < s_min_items_to_process) {
                     ready = false;
@@ -301,9 +302,12 @@ public:
                                  write_info.item_size);
                     if (!ready)
                         break;
-                    bufs.push_back(p_buf);
 
                     int tmp_buf_size = write_info.n_items;
+                    if (tmp_buf_size < s_min_buf_items) {
+                        ready = false;
+                        break;
+                    }
                     // while (tmp_buf_size > p_buf->) {
                     //     tmp_buf_size >>= 1;
                     //     if (tmp_buf_size < s_min_buf_items)
@@ -314,7 +318,7 @@ public:
                     // }
                     // if (!ready) { break; }
 
-                    
+
                     if (tmp_buf_size < max_output_buffer - 1)
                         max_output_buffer = tmp_buf_size;
 
@@ -351,7 +355,12 @@ public:
                 work_return_code_t ret;
                 while (true) {
 
-                    gr_log_debug(_debug_logger, "do_work for {}", b->alias());
+                    if (work_output.size() > 0)
+                        gr_log_debug(_debug_logger, "do_work for {}, {}", b->alias(), work_output[0].n_items);
+                    else
+                        gr_log_debug(_debug_logger, "do_work for {}", b->alias());
+
+
                     ret = b->do_work(work_input, work_output);
                     gr_log_debug(_debug_logger, "do_work returned {}", ret);
 
@@ -364,7 +373,6 @@ public:
                         break;
                     } else if (ret == work_return_code_t::WORK_INSUFFICIENT_INPUT_ITEMS) {
                         work_output[0].n_items >>= 1;
-
                         if (work_output[0].n_items < 4) // min block size
                         {
                             break;
@@ -590,6 +598,8 @@ private:
                             fg_monitor_message(fg_monitor_message_t::FLUSHED, top->id()));
                         break;
                     case scheduler_action_t::EXIT:
+                        gr_log_debug(top->_debug_logger,
+                                     "fgm signaled EXIT, exiting thread");
                         // fgmon says that we need to be done, wrap it up
                         // each scheduler could handle this in a different way
                         top->d_thread_stopped = true;
@@ -597,6 +607,7 @@ private:
                     case scheduler_action_t::NOTIFY_OUTPUT:
                     case scheduler_action_t::NOTIFY_INPUT:
                     case scheduler_action_t::NOTIFY_ALL: {
+                        gr_log_debug(top->_debug_logger, "got NOTIFY");
 
                         auto s = top->run_one_iteration();
                         std::string dbg_work_done;
@@ -669,6 +680,7 @@ private:
                         }
 
                         if (notify_self) {
+                            gr_log_debug(top->_debug_logger, "notifying self");
                             top->notify_self();
                         }
 

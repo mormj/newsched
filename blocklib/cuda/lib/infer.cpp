@@ -196,6 +196,9 @@ work_return_code_t infer::work(std::vector<block_work_input>& work_input,
     auto num_batches = noutput_items / out_sz;
     auto ni = num_batches * in_sz;
 
+    unsigned int n_consumed = 0;
+    unsigned int n_produced = 0;
+
     std::vector<void *> bindings(2);
 
     for (auto b = 0; b < num_batches; b++) {
@@ -211,11 +214,14 @@ work_return_code_t infer::work(std::vector<block_work_input>& work_input,
             return work_return_code_t::WORK_ERROR;
         }
         cudaDeviceSynchronize();
+
+        n_consumed += in_sz;
+        n_produced += out_sz;
     }
 
 
-    work_input[0].n_consumed = ni;
-    work_output[0].n_produced = work_output[0].n_items;
+    work_input[0].n_consumed = n_consumed;
+    work_output[0].n_produced = n_produced;
     return work_return_code_t::WORK_OK;
 }
 

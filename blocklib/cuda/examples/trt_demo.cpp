@@ -5,8 +5,10 @@
 #include <gnuradio/blocklib/blocks/head.hpp>
 #include <gnuradio/blocklib/blocks/null_sink.hpp>
 #include <gnuradio/blocklib/blocks/null_source.hpp>
+#include <gnuradio/blocklib/blocks/vector_source.hpp>
 #include <gnuradio/blocklib/cuda/infer.hpp>
 #include <gnuradio/domain_adapter_shm.hpp>
+#include <gnuradio/domain_adapter_direct.hpp>
 #include <gnuradio/flowgraph.hpp>
 #include <gnuradio/logging.hpp>
 #include <gnuradio/schedulers/st/scheduler_st.hpp>
@@ -34,33 +36,49 @@ int main(int argc, char* argv[])
                                        cuda::memory_model_t::PINNED,
                                        1073741824,
                                        -1);
-        auto src = blocks::null_source::make(sizeof(float));
+        std::vector<float> input_data(samples);
+        for (auto i=0; i<samples; i++)
+            input_data[i] = (float)(i%256);
+
+        auto src = blocks::vector_source_f::make(input_data, false);
+        // auto src = blocks::null_source::make(sizeof(float));
         auto snk = blocks::null_sink::make(sizeof(float));
-        auto head = blocks::head::make(sizeof(float), samples);
+        // auto head = blocks::head::make(sizeof(float), samples);
 
         auto fg(std::make_shared<flowgraph>());
 
+        #if 0
         fg->connect(src, 0, head, 0);
         // I don't like polluting the connect function and various constructors this way
         // might be better with set_custom_buffer() function
-        fg->connect(head, 0, infer, 0, cuda_buffer_pinned::make, buffer_position_t::INGRESS);
-        fg->connect(infer, 0, snk, 0, cuda_buffer_pinned::make, buffer_position_t::EGRESS);
+        fg->connect(
+            head, 0, infer, 0, cuda_buffer_pinned::make, buffer_position_t::INGRESS);
+        fg->connect(
+            infer, 0, snk, 0, cuda_buffer_pinned::make, buffer_position_t::EGRESS);
+        #else
+        fg->connect(src, 0, infer, 0, cuda_buffer_pinned::make, buffer_position_t::INGRESS);
+        fg->connect(
+            infer, 0, snk, 0, cuda_buffer_pinned::make, buffer_position_t::EGRESS);
+        #endif
 
-
-        if (0) {
+        if (1) {
             std::shared_ptr<schedulers::scheduler_st> sched1(
                 new schedulers::scheduler_st("sched1", 32768));
             std::shared_ptr<schedulers::scheduler_st> sched2(
                 new schedulers::scheduler_st("sched2", 32768));
 
+            sched2->set_default_buffer_factory(cuda_buffer_pinned::make);
+
             fg->add_scheduler(sched1);
             fg->add_scheduler(sched2);
 
-            auto da_conf1 = domain_adapter_shm_conf::make(buffer_preference_t::UPSTREAM);
+            auto da_conf1 = domain_adapter_direct_conf::make(buffer_preference_t::UPSTREAM);
             auto da_conf2 =
-                domain_adapter_shm_conf::make(buffer_preference_t::DOWNSTREAM);
+                domain_adapter_direct_conf::make(buffer_preference_t::DOWNSTREAM);
 
-            domain_conf_vec dconf{ domain_conf(sched1, { src, head, snk }, da_conf1),
+            // domain_conf_vec dconf{ domain_conf(sched1, { src, head, snk }, da_conf1),
+            //                        domain_conf(sched2, { infer }, da_conf2) };
+            domain_conf_vec dconf{ domain_conf(sched1, { src, snk }, da_conf1),
                                    domain_conf(sched2, { infer }, da_conf2) };
 
             fg->partition(dconf);
@@ -70,6 +88,8 @@ int main(int argc, char* argv[])
             fg->set_scheduler(sched1);
             fg->validate();
         }
+
+        gr_log_debug(logger, "infer {}, src {}, snk, {}", infer->id(), src->id(), snk->id());
 
         auto t1 = std::chrono::steady_clock::now();
         fg->start();
