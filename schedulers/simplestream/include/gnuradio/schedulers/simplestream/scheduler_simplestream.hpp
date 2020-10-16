@@ -11,6 +11,10 @@ namespace schedulers {
 // This is a terrible scheduler just to pass data through the blocks
 // and demonstrate the pluggable scheduler concept
 
+// 32Kbyte buffer size between blocks
+#define GR_FIXED_BUFFER_SIZE (32 * (1L << 10))
+
+
 class scheduler_simplestream : public scheduler
 {
 private:
@@ -25,10 +29,10 @@ public:
     typedef std::shared_ptr<scheduler_simplestream> sptr;
 
     scheduler_simplestream(const std::string name = "simplestream",
-                           const unsigned int fixed_buf_size = 8192)
+                           const unsigned int fixed_buf_size = GR_FIXED_BUFFER_SIZE)
         : scheduler(name),
           s_fixed_buf_size(fixed_buf_size),
-          s_max_buf_items(fixed_buf_size / 2)
+          s_max_buf_items(fixed_buf_size - 1)
     {
     }
     ~scheduler_simplestream(){

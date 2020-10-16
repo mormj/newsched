@@ -60,7 +60,7 @@ class block : public gr::node, public std::enable_shared_from_this<block>
 private:
     bool d_output_multiple_set = false;
     bool d_running = false;
-    unsigned int d_output_multiple;
+    unsigned int d_output_multiple = 1;
     tag_propagation_policy_t d_tag_propagation_policy;
 
     std::map<std::string, block_callback_fcn>
@@ -134,6 +134,8 @@ public:
         d_output_multiple_set = true;
         d_output_multiple = multiple;
     }
+    unsigned int output_multiple() { return d_output_multiple; }
+    unsigned int output_multiple_set() { return d_output_multiple_set; }
     void set_alignment(unsigned int multiple) { set_output_multiple(multiple); }
     static const io_signature_capability& input_signature_capability()
     {

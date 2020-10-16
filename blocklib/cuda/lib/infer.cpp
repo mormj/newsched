@@ -149,56 +149,9 @@ bool infer::build()
             vol *= scalarsPerVec;
         }
         vol *= samplesCommon::volume(dims);
-
-        void* ptr;
-        switch (_memory_model) {
-        case memory_model_t::TRADITIONAL:
-            // Input memory will be explicitly set to device memory
-
-            if (!cudaMalloc(&ptr, vol * samplesCommon::getElementSize(type)) ==
-                cudaSuccess)
-                return false;
-            if (!cudaMalloc(&ptr, vol * samplesCommon::getElementSize(type)) ==
-                cudaSuccess)
-                return false;
-
-            d_device_bindings.emplace_back(ptr);
-            break;
-
-        case memory_model_t::PINNED:
-
-            // Input memory will be copied into pinned shared memory
-
-            if (!cudaHostAlloc(&ptr, vol * samplesCommon::getElementSize(type), 0) ==
-                cudaSuccess)
-                return false;
-            if (!cudaHostAlloc(&ptr, vol * samplesCommon::getElementSize(type), 0) ==
-                cudaSuccess)
-                return false;
-
-            d_device_bindings.emplace_back(ptr);
-
-            break;
-
-        case memory_model_t::UNIFIED:
-
-            // Use unified memory constructs
-
-            if (!cudaMallocManaged(&ptr, vol * samplesCommon::getElementSize(type)) ==
-                cudaSuccess)
-                return false;
-            if (!cudaMallocManaged(&ptr, vol * samplesCommon::getElementSize(type)) ==
-                cudaSuccess)
-                return false;
-
-            d_device_bindings.emplace_back(ptr);
-
-            break;
-
-        default:
-            throw std::runtime_error("Invalid Memory Model Specified");
-        }
     }
+
+
     return true;
 }
 
@@ -212,11 +165,11 @@ work_return_code_t infer::check_work_io(std::vector<block_work_input>& work_inpu
     // inputs is related to the parsed model
 
     // Assuming that ninput_items > noutput_items
-    int nb = work_output[0].n_items / d_output_vlen; // number of input vectors (batch size)
+    int nb =
+        work_output[0].n_items / d_output_vlen; // number of input vectors (batch size)
     int n_input_required = nb * d_input_vlen;
-    
-    if (n_input_required > work_input[0].n_items)
-    {
+
+    if (n_input_required > work_input[0].n_items) {
         return work_return_code_t::WORK_INSUFFICIENT_INPUT_ITEMS;
     }
 
@@ -227,14 +180,14 @@ work_return_code_t infer::work(std::vector<block_work_input>& work_input,
                                std::vector<block_work_output>& work_output)
 {
     auto ret = check_work_io(work_input, work_output);
-    if (ret != work_return_code_t::WORK_OK &&
-        ret != work_return_code_t::WORK_DONE)
-    {
+    if (ret != work_return_code_t::WORK_OK && ret != work_return_code_t::WORK_DONE) {
         return ret;
     }
 
     const float* in = reinterpret_cast<const float*>(work_input[0].items);
     float* out = reinterpret_cast<float*>(work_output[0].items);
+
+
 
     int in_sz = d_input_vlen;   // * d_batch_size;
     int out_sz = d_output_vlen; // * d_batch_size;
@@ -243,38 +196,21 @@ work_return_code_t infer::work(std::vector<block_work_input>& work_input,
     auto num_batches = noutput_items / out_sz;
     auto ni = num_batches * in_sz;
 
+    std::vector<void *> bindings(2);
+
     for (auto b = 0; b < num_batches; b++) {
 
-        // memcpy(d_input_buffer, in, noutput_items * sizeof(float));
+        // in and out are assumed to be valid device bindings from pinned or unified buffers
+        // requiring no additional memcpy
+        bindings[0] = const_cast<void *>(static_cast<const void *>(in + b*in_sz));
+        bindings[1] = static_cast<void *>(out + b*out_sz);
 
-        // Memcpy from host input buffers to device input buffers
-        // d_buffers->copyInputToDevice();
-
-        if (_memory_model == memory_model_t::TRADITIONAL) {
-            cudaMemcpy(d_device_bindings[0],
-                       in + b * in_sz,
-                       in_sz * sizeof(float),
-                       cudaMemcpyHostToDevice);
-        } else {
-            memcpy(d_device_bindings[0], in + b * in_sz, in_sz * sizeof(float));
-        }
-
-
-        bool status = d_context->executeV2(d_device_bindings.data());
+        bool status = d_context->executeV2(bindings.data());
         // bool status = d_context->execute(d_batch_size, d_device_bindings.data());
         if (!status) {
             return work_return_code_t::WORK_ERROR;
         }
         cudaDeviceSynchronize();
-
-        if (_memory_model == memory_model_t::TRADITIONAL) {
-            cudaMemcpy(out + b * out_sz,
-                       d_device_bindings[1],
-                       out_sz * sizeof(float),
-                       cudaMemcpyDeviceToHost);
-        } else {
-            memcpy(out + b * out_sz, d_device_bindings[1], out_sz * sizeof(float));
-        }
     }
 
 

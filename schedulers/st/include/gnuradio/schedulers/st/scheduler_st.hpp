@@ -22,6 +22,7 @@ public:
     const int s_fixed_buf_size;
     static const int s_min_items_to_process = 1;
     const int s_max_buf_items; // = s_fixed_buf_size / 2;
+    const int s_min_buf_items = 1;
 
     typedef std::shared_ptr<scheduler_st> sptr;
 
@@ -29,13 +30,70 @@ public:
                  const unsigned int fixed_buf_size = 8192)
         : scheduler(name),
           s_fixed_buf_size(fixed_buf_size),
-          s_max_buf_items(fixed_buf_size / 2)
+          s_max_buf_items(fixed_buf_size - 1)
     {
         _default_buf_factory = simplebuffer::make;
     }
     ~scheduler_st(){
 
     };
+
+    int get_buffer_num_items(edge e)
+    {
+        int item_size = e.itemsize();
+
+        // *2 because we're now only filling them 1/2 way in order to
+        // increase the available parallelism when using the TPB scheduler.
+        // (We're double buffering, where we used to single buffer)
+        int nitems = s_fixed_buf_size * 2 / item_size;
+
+        auto grblock = std::dynamic_pointer_cast<block>(e.src().node());
+
+        // Make sure there are at least twice the output_multiple no. of items
+        if (nitems < 2 * grblock->output_multiple()) // Note: this means output_multiple()
+            nitems =
+                2 * grblock->output_multiple(); // can't be changed by block dynamically
+
+        // // limit buffer size if indicated
+        // if (grblock->max_output_buffer(port) > 0) {
+        //     // std::cout << "constraining output items to " <<
+        //     block->max_output_buffer(port)
+        //     // << "\n";
+        //     nitems = std::min((long)nitems, (long)grblock->max_output_buffer(port));
+        //     nitems -= nitems % grblock->output_multiple();
+        //     if (nitems < 1)
+        //         throw std::runtime_error("problems allocating a buffer with the given
+        //         max "
+        //                                 "output buffer constraint!");
+        // } else if (grblock->min_output_buffer(port) > 0) {
+        //     nitems = std::max((long)nitems, (long)grblock->min_output_buffer(port));
+        //     nitems -= nitems % grblock->output_multiple();
+        //     if (nitems < 1)
+        //         throw std::runtime_error("problems allocating a buffer with the given
+        //         min "
+        //                                 "output buffer constraint!");
+        // }
+
+        // // If any downstream blocks are decimators and/or have a large output_multiple,
+        // // ensure we have a buffer at least twice their decimation
+        // factor*output_multiple basic_block_vector_t blocks =
+        // calc_downstream_blocks(block, port);
+
+        // for (basic_block_viter_t p = blocks.begin(); p != blocks.end(); p++) {
+        //     block_sptr dgrblock = cast_to_block_sptr(*p);
+        //     if (!dgrblock)
+        //         throw std::runtime_error("allocate_buffer found non-gr::block");
+
+        //     double decimation = (1.0 / dgrblock->relative_rate());
+        //     int multiple = dgrblock->output_multiple();
+        //     int history = dgrblock->history();
+        //     nitems =
+        //         std::max(nitems, static_cast<int>(2 * (decimation * multiple +
+        //         history)));
+        // }
+
+        return nitems;
+    }
 
     void initialize(flat_graph_sptr fg,
                     flowgraph_monitor_sptr fgmon,
@@ -53,6 +111,8 @@ public:
         for (auto e : fg->edges()) {
             // every edge needs a buffer
             d_edge_catalog[e.identifier()] = e;
+
+            auto num_items = get_buffer_num_items(e);
 
             // Determine whether the blocks on either side of the edge are domain adapters
             // If so, Domain adapters need their own buffer explicitly set
@@ -75,8 +135,8 @@ public:
                 if (src_da_cast->buffer_location() == buffer_location_t::LOCAL) {
                     buffer_sptr buf;
 
-                    buf = buf_factory(
-                        s_fixed_buf_size, e.itemsize(), buffer_position_t::INGRESS);
+                    buf =
+                        buf_factory(num_items, e.itemsize(), buffer_position_t::INGRESS);
 
                     src_da_cast->set_buffer(buf);
                     auto tmp = std::dynamic_pointer_cast<buffer>(src_da_cast);
@@ -89,8 +149,7 @@ public:
                 if (dst_da_cast->buffer_location() == buffer_location_t::LOCAL) {
                     buffer_sptr buf;
 
-                    buf = buf_factory(
-                        s_fixed_buf_size, e.itemsize(), buffer_position_t::EGRESS);
+                    buf = buf_factory(num_items, e.itemsize(), buffer_position_t::EGRESS);
                     dst_da_cast->set_buffer(buf);
                     auto tmp = std::dynamic_pointer_cast<buffer>(dst_da_cast);
                     d_edge_buffers[e.identifier()] = tmp;
@@ -104,8 +163,12 @@ public:
             // buffer
             else {
                 buffer_sptr buf;
-                buf = buf_factory(
-                    s_fixed_buf_size, e.itemsize(), buffer_position_t::NORMAL);
+                if (e.has_custom_buffer()) {
+                    buf =
+                        e.buffer_factory()(num_items, e.itemsize(), e.buffer_position());
+                } else {
+                    buf = buf_factory(num_items, e.itemsize(), buffer_position_t::NORMAL);
+                }
 
                 d_edge_buffers[e.identifier()] = buf;
             }
@@ -240,12 +303,18 @@ public:
                         break;
                     bufs.push_back(p_buf);
 
-                    if (write_info.n_items <= s_max_buf_items) {
-                        ready = false;
-                        break;
-                    }
-
                     int tmp_buf_size = write_info.n_items;
+                    // while (tmp_buf_size > p_buf->) {
+                    //     tmp_buf_size >>= 1;
+                    //     if (tmp_buf_size < s_min_buf_items)
+                    //     {
+                    //         ready = false;
+                    //         break;
+                    //     }
+                    // }
+                    // if (!ready) { break; }
+
+                    
                     if (tmp_buf_size < max_output_buffer - 1)
                         max_output_buffer = tmp_buf_size;
 
@@ -258,6 +327,16 @@ public:
 
                 max_output_buffer = std::min(max_output_buffer, s_max_buf_items);
                 std::vector<tag_t> tags; // needs to be associated with edge buffers
+
+                if (b->output_multiple_set()) {
+                    // quantize to the output multiple
+                    max_output_buffer =
+                        b->output_multiple() * (max_output_buffer / b->output_multiple());
+                    if (max_output_buffer == 0) {
+                        ready = false;
+                        break;
+                    }
+                }
 
                 work_output.push_back(block_work_output(
                     max_output_buffer, nitems_written, write_ptr, tags));

@@ -83,7 +83,9 @@ public:
         std::scoped_lock guard(_buf_mutex);
 
         info.ptr = write_ptr();
-        info.n_items = capacity() - size();
+        info.n_items = capacity() - size() - 1; // always keep the write pointer 1 behind the read ptr
+        if (info.n_items < 0)
+            info.n_items = 0;
         info.item_size = _item_size;
         info.total_items = _total_written;
 

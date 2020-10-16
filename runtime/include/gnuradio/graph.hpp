@@ -4,11 +4,11 @@
 
 #include "api.h"
 #include <gnuradio/block.hpp>
+#include <gnuradio/buffer.hpp>
 #include <gnuradio/node.hpp>
 #include <iostream>
 #include <utility>
 #include <vector>
-
 namespace gr {
 
 // class flat_graph;
@@ -63,10 +63,9 @@ public:
     std::string identifier() const { return d_node->alias() + ":" + d_port->alias(); };
 };
 
-inline bool operator== (const node_endpoint &n1, const node_endpoint &n2)
+inline bool operator==(const node_endpoint& n1, const node_endpoint& n2)
 {
-    return (n1.node() == n2.node() &&
-            n1.port()== n2.port());
+    return (n1.node() == n2.node() && n1.port() == n2.port());
 }
 
 inline std::ostream& operator<<(std::ostream& os, const node_endpoint endp)
@@ -88,16 +87,43 @@ inline std::ostream& operator<<(std::ostream& os, const node_endpoint endp)
 //     }
 // };
 
+/**
+ * @brief The factory function used for allocating buffers
+ *
+ */
+typedef std::function<std::shared_ptr<buffer>(size_t, size_t, buffer_position_t)>
+    buffer_factory_function;
+
+
 class edge
 {
 protected:
     node_endpoint _src, _dst;
+    buffer_factory_function _buffer_factory = nullptr;
+    buffer_position_t _buffer_position = buffer_position_t::NORMAL;
 
 public:
     edge(){};
-    edge(const node_endpoint& src, const node_endpoint& dst) : _src(src), _dst(dst) {}
-    edge(node_sptr src_blk, port_sptr src_port, node_sptr dst_blk, port_sptr dst_port)
-        : _src(node_endpoint(src_blk, src_port)), _dst(node_endpoint(dst_blk, dst_port))
+    edge(const node_endpoint& src,
+         const node_endpoint& dst,
+         buffer_factory_function buffer_factory_ = nullptr,
+         buffer_position_t buffer_position_ = buffer_position_t::NORMAL)
+        : _src(src),
+          _dst(dst),
+          _buffer_factory(buffer_factory_),
+          _buffer_position(buffer_position_)
+    {
+    }
+    edge(node_sptr src_blk,
+         port_sptr src_port,
+         node_sptr dst_blk,
+         port_sptr dst_port,
+         buffer_factory_function buffer_factory_ = nullptr,
+         buffer_position_t buffer_position_ = buffer_position_t::NORMAL)
+        : _src(node_endpoint(src_blk, src_port)),
+          _dst(node_endpoint(dst_blk, dst_port)),
+          _buffer_factory(buffer_factory_),
+          _buffer_position(buffer_position_)
     {
     }
     virtual ~edge(){};
@@ -110,6 +136,12 @@ public:
     }
 
     size_t itemsize() const { return _src.port()->itemsize(); }
+
+    bool has_custom_buffer() { 
+        return _buffer_factory != nullptr; 
+    }
+    buffer_factory_function buffer_factory() { return _buffer_factory; }
+    buffer_position_t buffer_position() { return _buffer_position; }
 };
 
 inline std::ostream& operator<<(std::ostream& os, const edge edge)
@@ -118,10 +150,9 @@ inline std::ostream& operator<<(std::ostream& os, const edge edge)
     return os;
 }
 
-inline bool operator== (const edge &e1, const edge &e2)
+inline bool operator==(const edge& e1, const edge& e2)
 {
-    return (e1.src() == e2.src() &&
-            e1.dst()== e2.dst());
+    return (e1.src() == e2.src() && e1.dst() == e2.dst());
 }
 
 typedef std::vector<edge> edge_vector_t;
@@ -140,24 +171,24 @@ protected:
     edge_vector_t _edges;
     node_vector_t _orphan_nodes;
 
-
 public:
     typedef std::shared_ptr<graph> sptr;
-    static sptr make()
-    {
-        return std::make_shared<graph>(graph());
-    }
+    static sptr make() { return std::make_shared<graph>(graph()); }
     graph() : node() {}
     ~graph() {}
     std::shared_ptr<graph> base() { return shared_from_this(); }
     std::vector<edge>& edges() { return _edges; }
-    void connect(const node_endpoint& src, const node_endpoint& dst)
+    void connect(const node_endpoint& src,
+                 const node_endpoint& dst,
+                 buffer_factory_function buffer_factory = nullptr,
+                 buffer_position_t buffer_position = buffer_position_t::NORMAL)
     {
         // TODO: Do a bunch of checking
 
-        _edges.push_back(edge(src, dst));
+        _edges.push_back(edge(src, dst, buffer_factory, buffer_position));
         auto used_nodes = calc_used_nodes();
-        // used_nodes.insert(used_nodes.end(), _orphan_nodes.begin(), _orphan_nodes.end());
+        // used_nodes.insert(used_nodes.end(), _orphan_nodes.begin(),
+        // _orphan_nodes.end());
         _nodes = used_nodes;
 
         std::map<std::string, int> name_count;
@@ -179,7 +210,9 @@ public:
     void connect(node_sptr src_node,
                  unsigned int src_port_index,
                  node_sptr dst_node,
-                 unsigned int dst_port_index)
+                 unsigned int dst_port_index,
+                 buffer_factory_function buffer_factory = nullptr,
+                 buffer_position_t buffer_position = buffer_position_t::NORMAL)
     {
         port_sptr src_port = src_node->get_port(
             src_port_index, port_type_t::STREAM, port_direction_t::OUTPUT);
@@ -191,7 +224,10 @@ public:
         if (dst_port == nullptr)
             throw std::invalid_argument("Destination port not found");
 
-        connect(node_endpoint(src_node, src_port), node_endpoint(dst_node, dst_port));
+        connect(node_endpoint(src_node, src_port),
+                node_endpoint(dst_node, dst_port),
+                buffer_factory,
+                buffer_position);
     }
     void connect(node_sptr src_node,
                  std::string& src_port_name,
@@ -200,10 +236,7 @@ public:
     void disconnect(const node_endpoint& src, const node_endpoint& dst){};
     virtual void validate(){};
     virtual void clear(){};
-    void add_orphan_node(node_sptr orphan_node)
-    {
-        _orphan_nodes.push_back(orphan_node);
-    }
+    void add_orphan_node(node_sptr orphan_node) { _orphan_nodes.push_back(orphan_node); }
     // /**
     //  * @brief Return a flattened graph (all subgraphs reduced to their constituent
     //  blocks
@@ -227,8 +260,7 @@ public:
             tmp.push_back(p->src().node());
             tmp.push_back(p->dst().node());
         }
-        for (auto n : _orphan_nodes)
-        {
+        for (auto n : _orphan_nodes) {
             tmp.push_back(n);
         }
 
