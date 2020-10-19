@@ -100,7 +100,10 @@ bool cuda_buffer::write_info(buffer_info_t& info)
     std::lock_guard<std::mutex> guard(_buf_mutex);
 
     info.ptr = write_ptr();
-    info.n_items = capacity() - size();
+    info.n_items =
+        capacity() - size() - 1; // always keep the write pointer 1 behind the read ptr
+    if (info.n_items < 0)
+        info.n_items = 0;
     info.item_size = _item_size;
 
     return true;
