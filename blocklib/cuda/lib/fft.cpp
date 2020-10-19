@@ -1,0 +1,103 @@
+#include <gnuradio/blocklib/cuda/fft.hpp>
+
+#include "helper_cuda.h"
+
+extern void apply_window(cuFloatComplex* in, float* window, int fft_size, int batch_size);
+
+namespace gr {
+namespace cuda {
+
+
+/*
+ * The private constructor
+ */
+fft::fft(const size_t fft_size,
+         const bool forward,
+         const std::vector<float>& window,
+         bool shift,
+         const size_t batch_size)
+    : gr::sync_block("fft"),
+      d_fft_size(fft_size),
+      d_forward(forward),
+      d_window(window),
+      d_shift(shift),
+      d_batch_size(batch_size)
+
+{
+
+    checkCudaErrors(
+        cudaMalloc((void**)&d_data, sizeof(cufftComplex) * d_fft_size * d_batch_size));
+
+    checkCudaErrors(
+        cudaMalloc((void**)&d_window_dev, sizeof(float) * d_fft_size * d_batch_size));
+
+    for (auto i = 0; i < d_batch_size; i++) {
+        checkCudaErrors(cudaMemcpy(d_window_dev + i * d_fft_size,
+                                   &window[0],
+                                   d_fft_size * sizeof(float),
+                                   cudaMemcpyHostToDevice));
+    }
+
+    size_t workSize;
+    int fftSize = d_fft_size;
+
+    checkCudaErrors(cufftCreate(&d_plan));
+
+    checkCudaErrors(cufftMakePlanMany(
+        d_plan, 1, &fftSize, NULL, 1, 1, NULL, 1, 1, CUFFT_C2C, d_batch_size, &workSize));
+
+    gr_log_info(_logger, "Temporary buffer size {} bytes", workSize);
+
+    // checkCudaErrors(cufftPlan1d(&d_plan, d_fft_size, CUFFT_C2C, 1));
+
+    set_output_multiple(d_fft_size * d_batch_size);
+}
+
+/*
+ * Our virtual destructor.
+ */
+fft::~fft()
+{
+    cufftDestroy(d_plan);
+    cudaFree(d_data);
+    cudaFree(d_window_dev);
+}
+
+work_return_code_t fft::work(std::vector<block_work_input>& work_input,
+              std::vector<block_work_output>& work_output)
+{
+    const gr_complex* in = reinterpret_cast<const gr_complex*>(work_input[0].items);
+    gr_complex* out = reinterpret_cast<gr_complex*>(work_output[0].items);
+
+    auto noutput_items = work_output[0].n_items;
+
+    auto work_size = d_batch_size * d_fft_size;
+    auto nvecs = noutput_items / work_size;
+    auto mem_size = work_size * sizeof(gr_complex);
+
+    for (auto s = 0; s < nvecs; s++) {
+        checkCudaErrors(
+            cudaMemcpy(d_data, in + s * work_size, mem_size, cudaMemcpyHostToDevice));
+
+        apply_window(d_data, d_window_dev, d_fft_size, d_batch_size);
+        cudaDeviceSynchronize();
+
+
+        if (d_forward) {
+            cufftExecC2C(d_plan, d_data, d_data, CUFFT_FORWARD);
+        } else {
+            cufftExecC2C(d_plan, d_data, d_data, CUFFT_INVERSE);
+        }
+
+        cudaDeviceSynchronize();
+
+        checkCudaErrors(
+            cudaMemcpy(out + s * work_size, d_data, mem_size, cudaMemcpyDeviceToHost));
+    }
+
+    // Tell runtime system how many output items we produced.
+    work_output[0].n_produced = noutput_items;
+    return work_return_code_t::WORK_OK;
+}
+} // namespace cuda
+} // namespace gr

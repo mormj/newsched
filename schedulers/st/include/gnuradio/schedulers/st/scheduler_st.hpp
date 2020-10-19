@@ -345,6 +345,11 @@ public:
 
                 if (b->output_multiple_set()) {
                     // quantize to the output multiple
+                    if (max_output_buffer < b->output_multiple())
+                    {
+                        max_output_buffer = b->output_multiple();
+                    }
+
                     max_output_buffer =
                         b->output_multiple() * (max_output_buffer / b->output_multiple());
                     if (max_output_buffer == 0) {

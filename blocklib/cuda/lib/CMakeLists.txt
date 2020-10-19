@@ -2,6 +2,7 @@ find_package(CUDA REQUIRED)
 find_package(TensorRT REQUIRED)
 
 add_library(gnuradio-blocklib-cuda-cu SHARED
+  fft.cu
   multiply_const.cu
   multiply_const_doublecopy.cu
   )
@@ -9,6 +10,7 @@ add_library(gnuradio-blocklib-cuda-cu SHARED
   target_compile_options(gnuradio-blocklib-cuda-cu PRIVATE $<$<COMPILE_LANGUAGE:CUDA>:-gencode arch=compute_50,code=sm_50>)
 
   add_library(gnuradio-blocklib-cuda SHARED
+  fft.cpp
   logger.cpp
   infer.cpp
   multiply_const.cpp
