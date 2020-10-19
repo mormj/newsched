@@ -3,6 +3,7 @@
 #include <gnuradio/tag.hpp>
 #include <memory>
 #include <vector>
+#include <functional>
 
 namespace gr {
 
@@ -65,5 +66,16 @@ public:
 };
 
 typedef std::shared_ptr<buffer> buffer_sptr;
+
+typedef std::function<std::shared_ptr<buffer>(size_t, size_t, buffer_position_t)>
+    buffer_factory_function;
+
+// class buffer_properties
+// {
+//     public:
+
+//     private:
+
+// };
 
 } // namespace gr

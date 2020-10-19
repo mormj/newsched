@@ -91,9 +91,6 @@ inline std::ostream& operator<<(std::ostream& os, const node_endpoint endp)
  * @brief The factory function used for allocating buffers
  *
  */
-typedef std::function<std::shared_ptr<buffer>(size_t, size_t, buffer_position_t)>
-    buffer_factory_function;
-
 
 class edge
 {
