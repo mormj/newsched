@@ -14,6 +14,7 @@
 #include <gnuradio/schedulers/st/scheduler_st.hpp>
 
 #include <gnuradio/cudabuffer_pinned.hpp>
+#include <gnuradio/cudabuffer.hpp>
 
 using namespace gr;
 
@@ -47,27 +48,18 @@ int main(int argc, char* argv[])
 
         auto fg(std::make_shared<flowgraph>());
 
-        #if 0
-        fg->connect(src, 0, head, 0);
-        // I don't like polluting the connect function and various constructors this way
-        // might be better with set_custom_buffer() function
+        fg->connect(src, 0, infer, 0, cuda_buffer_pinned::make, cuda_buffer_pinned_properties::make());
         fg->connect(
-            head, 0, infer, 0, cuda_buffer_pinned::make, buffer_position_t::INGRESS);
-        fg->connect(
-            infer, 0, snk, 0, cuda_buffer_pinned::make, buffer_position_t::EGRESS);
-        #else
-        fg->connect(src, 0, infer, 0, cuda_buffer_pinned::make, buffer_position_t::INGRESS);
-        fg->connect(
-            infer, 0, snk, 0, cuda_buffer_pinned::make, buffer_position_t::EGRESS);
-        #endif
+            infer, 0, snk, 0, cuda_buffer_pinned::make, cuda_buffer_pinned_properties::make());
 
-        if (1) {
+        if (0) {
             std::shared_ptr<schedulers::scheduler_st> sched1(
                 new schedulers::scheduler_st("sched1", 32768));
             std::shared_ptr<schedulers::scheduler_st> sched2(
                 new schedulers::scheduler_st("sched2", 32768));
 
             sched2->set_default_buffer_factory(cuda_buffer_pinned::make);
+            // sched2->set_default_buffer_factory(cuda_buffer::make, cuda_buffer_properties::make(cuda_buffer_type::D2D));
 
             fg->add_scheduler(sched1);
             fg->add_scheduler(sched2);

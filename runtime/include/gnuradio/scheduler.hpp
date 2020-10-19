@@ -140,9 +140,11 @@ public:
     scheduler_state state() { return _state; }
     void set_state(scheduler_state state) { _state = state; }
 
-    virtual void set_default_buffer_factory(const buffer_factory_function& bff)
+    virtual void set_default_buffer_factory(const buffer_factory_function& bff,
+                                            std::shared_ptr<buffer_properties> bp = nullptr)
     {
         _default_buf_factory = bff;
+        _default_buf_properties = bp;
     }
 
 protected:
@@ -150,6 +152,7 @@ protected:
     logger_sptr _debug_logger;
 
     buffer_factory_function _default_buf_factory = nullptr;
+    std::shared_ptr<buffer_properties> _default_buf_properties = nullptr;
 
 private:
     std::string _name;

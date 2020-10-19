@@ -9,6 +9,22 @@
 
 namespace gr {
 
+class cuda_buffer_pinned_properties : public buffer_properties
+{
+public:
+    // typedef sptr std::shared_ptr<buffer_properties>;
+    cuda_buffer_pinned_properties()
+        : buffer_properties()
+    {
+    }
+    static std::shared_ptr<buffer_properties> make()
+    {
+        return std::dynamic_pointer_cast<buffer_properties>(
+            std::make_shared<cuda_buffer_pinned_properties>());
+    }
+};
+
+
 class cuda_buffer_pinned : public buffer
 {
 private:
@@ -30,8 +46,8 @@ public:
     ~cuda_buffer_pinned();
 
     static buffer_sptr make(size_t num_items,
-                        size_t item_size,
-                        buffer_position_t buf_pos = buffer_position_t::NORMAL);
+                            size_t item_size,
+                            std::shared_ptr<buffer_properties> buffer_properties);
     int size();
     int capacity();
 

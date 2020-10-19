@@ -10,7 +10,6 @@
 #include <gnuradio/buffer.hpp>
 
 
-
 // Doubly mapped circular buffer class
 // For now, just do this as the sysv_shm flavor
 // expand out with the preferences and the factories later
@@ -19,7 +18,7 @@ namespace gr {
 class vmcirc_buffer : public buffer
 {
 private:
-    uint8_t *_buffer;
+    uint8_t* _buffer;
 
     unsigned int _read_index;
     unsigned int _write_index;
@@ -37,7 +36,9 @@ public:
 
     ~vmcirc_buffer();
 
-    static buffer_sptr make(size_t num_items, size_t item_size, buffer_position_t buf_pos=buffer_position_t::NORMAL)
+    static buffer_sptr make(size_t num_items,
+                            size_t item_size,
+                            std::shared_ptr<buffer_properties> buffer_properties)
     {
         // Figure out which factory to use - for now, just use sysv_shm
 
@@ -86,7 +87,8 @@ public:
         std::scoped_lock guard(_buf_mutex);
 
         info.ptr = write_ptr();
-        info.n_items = capacity() - size() - 1; // always keep the write pointer 1 behind the read ptr
+        info.n_items = capacity() - size() -
+                       1; // always keep the write pointer 1 behind the read ptr
         if (info.n_items < 0)
             info.n_items = 0;
         info.item_size = _item_size;

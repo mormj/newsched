@@ -36,7 +36,9 @@ public:
         _write_index = 0;
     }
 
-    static buffer_sptr make(size_t num_items, size_t item_size, buffer_position_t buf_pos=buffer_position_t::NORMAL)
+    static buffer_sptr make(size_t num_items,
+                            size_t item_size,
+                            std::shared_ptr<buffer_properties> buffer_properties)
     {
         return buffer_sptr(new simplebuffer(num_items, item_size));
     }

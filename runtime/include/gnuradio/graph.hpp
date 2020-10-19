@@ -97,18 +97,18 @@ class edge
 protected:
     node_endpoint _src, _dst;
     buffer_factory_function _buffer_factory = nullptr;
-    buffer_position_t _buffer_position = buffer_position_t::NORMAL;
+    std::shared_ptr<buffer_properties> _buffer_properties = nullptr;
 
 public:
     edge(){};
     edge(const node_endpoint& src,
          const node_endpoint& dst,
          buffer_factory_function buffer_factory_ = nullptr,
-         buffer_position_t buffer_position_ = buffer_position_t::NORMAL)
+         std::shared_ptr<buffer_properties> buffer_properties_ = nullptr)
         : _src(src),
           _dst(dst),
           _buffer_factory(buffer_factory_),
-          _buffer_position(buffer_position_)
+          _buffer_properties(buffer_properties_)
     {
     }
     edge(node_sptr src_blk,
@@ -116,11 +116,11 @@ public:
          node_sptr dst_blk,
          port_sptr dst_port,
          buffer_factory_function buffer_factory_ = nullptr,
-         buffer_position_t buffer_position_ = buffer_position_t::NORMAL)
+         std::shared_ptr<buffer_properties> buffer_properties_ = nullptr)
         : _src(node_endpoint(src_blk, src_port)),
           _dst(node_endpoint(dst_blk, dst_port)),
           _buffer_factory(buffer_factory_),
-          _buffer_position(buffer_position_)
+          _buffer_properties(buffer_properties_)
     {
     }
     virtual ~edge(){};
@@ -138,7 +138,7 @@ public:
         return _buffer_factory != nullptr; 
     }
     buffer_factory_function buffer_factory() { return _buffer_factory; }
-    buffer_position_t buffer_position() { return _buffer_position; }
+    std::shared_ptr<buffer_properties> buf_properties() { return _buffer_properties; }
 };
 
 inline std::ostream& operator<<(std::ostream& os, const edge edge)
@@ -178,11 +178,11 @@ public:
     void connect(const node_endpoint& src,
                  const node_endpoint& dst,
                  buffer_factory_function buffer_factory = nullptr,
-                 buffer_position_t buffer_position = buffer_position_t::NORMAL)
+                 std::shared_ptr<buffer_properties> buf_properties = nullptr)
     {
         // TODO: Do a bunch of checking
 
-        _edges.push_back(edge(src, dst, buffer_factory, buffer_position));
+        _edges.push_back(edge(src, dst, buffer_factory, buf_properties));
         auto used_nodes = calc_used_nodes();
         // used_nodes.insert(used_nodes.end(), _orphan_nodes.begin(),
         // _orphan_nodes.end());
@@ -209,7 +209,7 @@ public:
                  node_sptr dst_node,
                  unsigned int dst_port_index,
                  buffer_factory_function buffer_factory = nullptr,
-                 buffer_position_t buffer_position = buffer_position_t::NORMAL)
+                 std::shared_ptr<buffer_properties> buf_properties = nullptr)
     {
         port_sptr src_port = src_node->get_port(
             src_port_index, port_type_t::STREAM, port_direction_t::OUTPUT);
@@ -224,7 +224,7 @@ public:
         connect(node_endpoint(src_node, src_port),
                 node_endpoint(dst_node, dst_port),
                 buffer_factory,
-                buffer_position);
+                buf_properties);
     }
     void connect(node_sptr src_node,
                  std::string& src_port_name,

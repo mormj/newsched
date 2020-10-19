@@ -110,6 +110,7 @@ public:
         // if (fg->is_flat())  // flatten
 
         buffer_factory_function buf_factory = _default_buf_factory;
+        std::shared_ptr<buffer_properties> buf_props = _default_buf_properties;
 
         // not all edges may be used
         for (auto e : fg->edges()) {
@@ -117,6 +118,7 @@ public:
             d_edge_catalog[e.identifier()] = e;
 
             auto num_items = get_buffer_num_items(e);
+
 
             // Determine whether the blocks on either side of the edge are domain adapters
             // If so, Domain adapters need their own buffer explicitly set
@@ -139,8 +141,12 @@ public:
                 if (src_da_cast->buffer_location() == buffer_location_t::LOCAL) {
                     buffer_sptr buf;
 
-                    buf =
-                        buf_factory(num_items, e.itemsize(), buffer_position_t::INGRESS);
+                    if (e.has_custom_buffer()) {
+                        buf = e.buffer_factory()(
+                            num_items, e.itemsize(), e.buf_properties());
+                    } else {
+                        buf = buf_factory(num_items, e.itemsize(), buf_props);
+                    }
 
                     src_da_cast->set_buffer(buf);
                     auto tmp = std::dynamic_pointer_cast<buffer>(src_da_cast);
@@ -153,7 +159,13 @@ public:
                 if (dst_da_cast->buffer_location() == buffer_location_t::LOCAL) {
                     buffer_sptr buf;
 
-                    buf = buf_factory(num_items, e.itemsize(), buffer_position_t::EGRESS);
+                    if (e.has_custom_buffer()) {
+                        buf = e.buffer_factory()(
+                            num_items, e.itemsize(), e.buf_properties());
+                    } else {
+                        buf = buf_factory(num_items, e.itemsize(), buf_props);
+                    }
+
                     dst_da_cast->set_buffer(buf);
                     auto tmp = std::dynamic_pointer_cast<buffer>(dst_da_cast);
                     d_edge_buffers[e.identifier()] = tmp;
@@ -168,10 +180,9 @@ public:
             else {
                 buffer_sptr buf;
                 if (e.has_custom_buffer()) {
-                    buf =
-                        e.buffer_factory()(num_items, e.itemsize(), e.buffer_position());
+                    buf = e.buffer_factory()(num_items, e.itemsize(), e.buf_properties());
                 } else {
-                    buf = buf_factory(num_items, e.itemsize(), buffer_position_t::NORMAL);
+                    buf = buf_factory(num_items, e.itemsize(), buf_props);
                 }
 
                 d_edge_buffers[e.identifier()] = buf;
@@ -356,7 +367,10 @@ public:
                 while (true) {
 
                     if (work_output.size() > 0)
-                        gr_log_debug(_debug_logger, "do_work for {}, {}", b->alias(), work_output[0].n_items);
+                        gr_log_debug(_debug_logger,
+                                     "do_work for {}, {}",
+                                     b->alias(),
+                                     work_output[0].n_items);
                     else
                         gr_log_debug(_debug_logger, "do_work for {}", b->alias());
 

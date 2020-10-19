@@ -217,9 +217,9 @@ int main(int argc, char* argv[])
 
         flowgraph_sptr fg(new flowgraph());
         fg->connect(src, 0, mult1, 0);
-        fg->connect(mult1, 0, mult2, 0);
+        fg->connect(mult1, 0, mult2, 0, cuda_buffer::make, cuda_buffer_properties::make(cuda_buffer_type::H2D));
         fg->connect(mult2, 0, mult3, 0);
-        fg->connect(mult3, 0, mult4, 0);
+        fg->connect(mult3, 0, mult4, 0, cuda_buffer::make, cuda_buffer_properties::make(cuda_buffer_type::D2H));
         fg->connect(mult4, 0, snk, 0);
 
 
@@ -231,7 +231,7 @@ int main(int argc, char* argv[])
         //     new schedulers::scheduler_st("sched2"));
         fg->add_scheduler(sched1);
         fg->add_scheduler(sched2);
-        sched2->set_default_buffer_factory(cuda_buffer::make);
+        sched2->set_default_buffer_factory(cuda_buffer::make, cuda_buffer_properties::make(cuda_buffer_type::D2D));
 
         auto da_conf_upstream =
             domain_adapter_shm_conf::make(buffer_preference_t::UPSTREAM);

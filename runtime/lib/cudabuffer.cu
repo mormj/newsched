@@ -32,19 +32,17 @@ cuda_buffer::cuda_buffer(size_t num_items, size_t item_size, cuda_buffer_type ty
 cuda_buffer::~cuda_buffer() { cudaFree(_device_buffer); }
 
 buffer_sptr cuda_buffer::make(size_t num_items,
-                        size_t item_size,
-                        buffer_position_t buf_pos)
+                              size_t item_size,
+                              std::shared_ptr<buffer_properties> buffer_properties)
 {
-    // This is not well abstracted at all, needs more thought.  
-    // Is an ingress/egress distinction good enough - how would we handle
-    //  direct to/from FPGA types of buffers??
-    cuda_buffer_type type = cuda_buffer_type::D2D;
-    if (buf_pos == buffer_position_t::INGRESS) {
-        type = cuda_buffer_type::H2D;
-    } else if (buf_pos == buffer_position_t::EGRESS) {
-        type = cuda_buffer_type::D2H;
+    auto cbp = std::dynamic_pointer_cast<cuda_buffer_properties>(buffer_properties);
+    if (cbp != nullptr) {
+        return buffer_sptr(
+            new cuda_buffer(num_items, item_size, cbp->buffer_type()));
+    } else {
+        throw std::runtime_error(
+            "Failed to cast buffer properties to cuda_buffer_properties");
     }
-    return buffer_sptr(new cuda_buffer(num_items, item_size, type));
 }
 
 int cuda_buffer::size()

@@ -104,8 +104,7 @@ void flowgraph::partition(std::vector<domain_conf>& confs)
                 }
             }
 
-            if (!connected)
-            {
+            if (!connected) {
                 g->add_orphan_node(b);
             }
         }
@@ -188,8 +187,14 @@ void flowgraph::partition(std::vector<domain_conf>& confs)
 
         // Attach domain adapters to the src and dest blocks
         // domain adapters only have one port
-        src_block_graph->connect(c.src(), node_endpoint(da_src, da_src->all_ports()[0]));
-        dst_block_graph->connect(node_endpoint(da_dst, da_dst->all_ports()[0]), c.dst());
+        src_block_graph->connect(c.src(),
+                                 node_endpoint(da_src, da_src->all_ports()[0]),
+                                 c.buffer_factory(),
+                                 c.buf_properties());
+        dst_block_graph->connect(node_endpoint(da_dst, da_dst->all_ports()[0]),
+                                 c.dst(),
+                                 c.buffer_factory(),
+                                 c.buf_properties());
 
 
         // Set the block id to "other scheduler" maps

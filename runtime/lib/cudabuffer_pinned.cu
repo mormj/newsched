@@ -27,8 +27,9 @@ cuda_buffer_pinned::cuda_buffer_pinned(size_t num_items, size_t item_size)
 }
 cuda_buffer_pinned::~cuda_buffer_pinned() { cudaFree(_pinned_buffer); }
 
-buffer_sptr
-cuda_buffer_pinned::make(size_t num_items, size_t item_size, buffer_position_t buf_pos)
+buffer_sptr cuda_buffer_pinned::make(size_t num_items,
+                             size_t item_size,
+                             std::shared_ptr<buffer_properties> buffer_properties)
 {
     return buffer_sptr(new cuda_buffer_pinned(num_items, item_size));
 }
