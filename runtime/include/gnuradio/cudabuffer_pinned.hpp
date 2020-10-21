@@ -68,3 +68,5 @@ public:
 };
 
 } // namespace gr
+
+#define CUDA_BUFFER_PINNED_ARGS cuda_buffer_pinned::make, cuda_buffer_pinned_properties::make()

@@ -29,20 +29,9 @@ fft::fft(const size_t fft_size,
 
 {
 
-    if (!cudaHostAlloc((void**)&d_window_dev,
-                       sizeof(float) * d_fft_size * d_batch_size,
-                       cudaHostAllocPortable) == cudaSuccess) {
-        throw std::runtime_error("Failed to allocate window buffer");
-    }
-
-    for (auto i = 0; i < d_batch_size; i++) {
-        memcpy(d_window_dev + i * d_fft_size, &window[0], d_fft_size * sizeof(float));
-    }
-
     size_t workSize;
     int fftSize = d_fft_size;
 
-    printf("Temporary buffer size %li bytes\n", workSize);
     checkCudaErrors(cufftCreate(&d_plan));
 
     checkCudaErrors(cufftMakePlanMany(
@@ -78,24 +67,6 @@ work_return_code_t fft::work(std::vector<block_work_input>& work_input,
     auto nvecs = noutput_items / d_batch_size;
     auto mem_size = work_size * sizeof(gr_complex);
 
-    //     cufftComplex* ii;
-    //     cufftComplex* oo;
-
-    // if (!cudaHostAlloc((void**)&ii, mem_size, 0) ==
-    //     cudaSuccess) {
-    //     throw std::runtime_error("Failed to allocate window buffer");
-    // }
-    // if (!cudaHostAlloc((void**)&oo, mem_size, 0) ==
-    //     cudaSuccess) {
-    //     throw std::runtime_error("Failed to allocate window buffer");
-    // }
-
-    // int fftSize;
-    // size_t workSize;
-    // checkCudaErrors(cufftCreate(&d_plan));
-    // checkCudaErrors(cufftMakePlanMany(
-    //     d_plan, 1, &fftSize, NULL, 1, 1, NULL, 1, 1, CUFFT_C2C, d_batch_size, &workSize));
-
 
     for (auto s = 0; s < nvecs; s++) {
 
@@ -103,31 +74,18 @@ work_return_code_t fft::work(std::vector<block_work_input>& work_input,
             reinterpret_cast<const cufftComplex*>(in + s * work_size));
         auto out_data = reinterpret_cast<cufftComplex*>(out + s * work_size);
 
-        // memcpy(ii, in_data, mem_size );
-
-        // checkCudaErrors(
-        //     cudaMemcpy(d_data, in + s * work_size, mem_size, cudaMemcpyHostToDevice));
-
-        apply_window(in_data, out_data, d_window_dev, d_fft_size, d_batch_size);
-        cudaDeviceSynchronize();
-
         if (d_forward) {
             checkCudaErrors(
-            cufftExecC2C(d_plan, out_data, out_data, CUFFT_FORWARD));
+            cufftExecC2C(d_plan, in_data, out_data, CUFFT_FORWARD));
         } else {
             checkCudaErrors(
-            cufftExecC2C(d_plan, out_data, out_data, CUFFT_INVERSE));
+            cufftExecC2C(d_plan, in_data, out_data, CUFFT_INVERSE));
         }
 
         cudaDeviceSynchronize();
 
-        // checkCudaErrors(
-        //     cudaMemcpy(out + s * work_size, d_data, mem_size, cudaMemcpyDeviceToHost));
-        // memcpy(out + s * work_size, ii, mem_size);
-    }
 
-    // cudaFreeHost(ii);
-    // cudaFreeHost(oo);
+    }
 
     // Tell runtime system how many output items we produced.
     work_output[0].n_produced = noutput_items;
