@@ -38,7 +38,7 @@ public:
 
     };
 
-    int get_buffer_num_items(edge e)
+    int get_buffer_num_items(edge e, flat_graph_sptr fg)
     {
         int item_size = e.itemsize();
 
@@ -78,22 +78,26 @@ public:
         //                                 "output buffer constraint!");
         // }
 
+        // FIXME: Downstream block connections get messed up by domain adapters
+        //   Need to tag the blocks before they get partitioned 
+        //   and store the information in the edge objects
+        //   also allow for different rates out of different ports
+
         // // If any downstream blocks are decimators and/or have a large output_multiple,
         // // ensure we have a buffer at least twice their decimation
-        // factor*output_multiple basic_block_vector_t blocks =
-        // calc_downstream_blocks(block, port);
+        // // factor*output_multiple
+        // auto blocks = fg->calc_downstream_blocks(grblock, port);
 
-        // for (basic_block_viter_t p = blocks.begin(); p != blocks.end(); p++) {
-        //     block_sptr dgrblock = cast_to_block_sptr(*p);
-        //     if (!dgrblock)
-        //         throw std::runtime_error("allocate_buffer found non-gr::block");
+        // for (auto&  p : blocks) {
+        //     // block_sptr dgrblock = cast_to_block_sptr(*p);
+        //     // if (!dgrblock)
+        //     //     throw std::runtime_error("allocate_buffer found non-gr::block");
 
-        //     double decimation = (1.0 / dgrblock->relative_rate());
-        //     int multiple = dgrblock->output_multiple();
-        //     int history = dgrblock->history();
+        //     // double decimation = (1.0 / dgrblock->relative_rate());
+        //     int multiple = p->output_multiple();
         //     nitems =
-        //         std::max(nitems, static_cast<int>(2 * (decimation * multiple +
-        //         history)));
+        //         std::max(nitems, static_cast<int>(2 * (multiple)));
+        //         // std::max(nitems, static_cast<int>(2 * (decimation * multiple)));
         // }
 
         return nitems;
@@ -117,7 +121,7 @@ public:
             // every edge needs a buffer
             d_edge_catalog[e.identifier()] = e;
 
-            auto num_items = get_buffer_num_items(e);
+            auto num_items = get_buffer_num_items(e, fg);
 
 
             // Determine whether the blocks on either side of the edge are domain adapters
@@ -345,8 +349,7 @@ public:
 
                 if (b->output_multiple_set()) {
                     // quantize to the output multiple
-                    if (max_output_buffer < b->output_multiple())
-                    {
+                    if (max_output_buffer < b->output_multiple()) {
                         max_output_buffer = b->output_multiple();
                     }
 

@@ -21,7 +21,7 @@ public:
                      const size_t batch_size = 1)
     {
         auto ptr =
-            std::make_shared<fft>(fft(fft_size, forward, window, shift, batch_size));
+            std::make_shared<fft>(fft_size, forward, window, shift, batch_size);
 
         ptr->add_port(port<gr_complex>::make(
             "input", port_direction_t::INPUT, port_type_t::STREAM));
@@ -57,7 +57,7 @@ private:
     size_t d_batch_size;
 
 
-    cufftHandle d_plan;
+    cufftHandle d_plan = 0;
     cufftComplex* d_data;
     cufftComplex* d_data2;
     float* d_window_dev;
