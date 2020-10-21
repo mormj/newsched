@@ -4,7 +4,6 @@
 
 extern void apply_window(cuFloatComplex* in,
                          cuFloatComplex* out,
-                         float* window,
                          int fft_size,
                          int batch_size);
 
@@ -17,13 +16,11 @@ namespace cuda {
  */
 fft::fft(const size_t fft_size,
          const bool forward,
-         const std::vector<float>& window,
          bool shift,
          const size_t batch_size)
     : gr::sync_block("fft"),
       d_fft_size(fft_size),
       d_forward(forward),
-      d_window(window),
       d_shift(shift),
       d_batch_size(batch_size)
 
@@ -50,8 +47,6 @@ fft::fft(const size_t fft_size,
 fft::~fft()
 {
     cufftDestroy(d_plan);
-    cudaFree(d_data);
-    cudaFree(d_window_dev);
 }
 
 work_return_code_t fft::work(std::vector<block_work_input>& work_input,

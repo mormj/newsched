@@ -170,7 +170,7 @@ public:
         return ptr;
     }
     domain_adapter_shm_cli(shm_sync_sptr sync, const std::string& name)
-        : domain_adapter(buffer_location_t::LOCAL, name), p_sync(sync)
+        : domain_adapter(buffer_location_t::REMOTE, name), p_sync(sync)
     {
     }
 

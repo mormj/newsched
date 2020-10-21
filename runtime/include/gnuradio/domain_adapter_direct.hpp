@@ -129,7 +129,7 @@ public:
         return ptr;
     }
     domain_adapter_direct_cli(direct_sync_sptr sync)
-        : domain_adapter(buffer_location_t::LOCAL), p_sync(sync)
+        : domain_adapter(buffer_location_t::REMOTE), p_sync(sync)
     {
     }
 

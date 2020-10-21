@@ -28,21 +28,13 @@ int main(int argc, char* argv[])
     int fft_size = 4;
     int samples = 1000000; // how many floats
     int actual_samples = (fft_size * batch_size) * (samples / (fft_size * batch_size));
-        std::vector<float> bh_window{
-#include "window_blackmanharris_32.h"
-        };
+//         std::vector<float> bh_window{
+// #include "window_blackmanharris_32.h"
+//         };
     // Basic test of the single threaded scheduler single instance
     if (0) {
 
-        // std::vector<float> input_data(samples);
-        // std::vector<float> expected_output(samples);
-        // for (int i = 0; i < samples; i++) {
-        //     input_data[i] = (float)i;
-        //     expected_output[i] = input_data[i] * k;
-        // }
-
-
-        auto fft = cuda::fft::make(fft_size, true, bh_window, false, batch_size);
+        auto fft = cuda::fft::make(fft_size, true, false, batch_size);
 
         std::vector<gr_complex> input_data(fft_size * (samples / fft_size));
         for (auto i = 0; i < fft_size * (samples / fft_size); i++)
@@ -116,7 +108,7 @@ int main(int argc, char* argv[])
 
         std::vector<cuda::fft::sptr> fft_blks(4);
         for (int i = 0; i < 4; i++) {
-            fft_blks[i] = cuda::fft::make(fft_size, true, bh_window, false, batch_size);
+            fft_blks[i] = cuda::fft::make(fft_size, true, false, batch_size);
         }
 
         std::vector<gr_complex> input_data(samples);
@@ -156,7 +148,7 @@ int main(int argc, char* argv[])
         fg->add_scheduler(sched3);
         fg->add_scheduler(sched4);
 
-        auto da_conf1 = domain_adapter_direct_conf::make(buffer_preference_t::UPSTREAM);
+        auto da_conf1 = domain_adapter_direct_conf::make(buffer_preference_t::DOWNSTREAM);
         auto da_conf2 = domain_adapter_direct_conf::make(buffer_preference_t::DOWNSTREAM);
 
         // domain_conf_vec dconf{ domain_conf(sched1, { src, head, snk }, da_conf1),

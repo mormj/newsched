@@ -16,12 +16,11 @@ public:
     typedef std::shared_ptr<fft> sptr;
     static sptr make(const size_t fft_size,
                      const bool forward,
-                     const std::vector<float>& window,
                      bool shift = false,
                      const size_t batch_size = 1)
     {
         auto ptr =
-            std::make_shared<fft>(fft_size, forward, window, shift, batch_size);
+            std::make_shared<fft>(fft_size, forward, shift, batch_size);
 
         ptr->add_port(port<gr_complex>::make(
             "input", port_direction_t::INPUT, port_type_t::STREAM));
@@ -40,7 +39,6 @@ public:
 
     fft(const size_t fft_size,
         const bool forward,
-        const std::vector<float>& window,
         bool shift,
         const size_t batch_size);
     ~fft();
@@ -52,15 +50,11 @@ public:
 private:
     size_t d_fft_size;
     bool d_forward;
-    std::vector<float> d_window;
     bool d_shift;
     size_t d_batch_size;
 
-
     cufftHandle d_plan = 0;
-    cufftComplex* d_data;
-    cufftComplex* d_data2;
-    float* d_window_dev;
+
 };
 
 } // namespace cuda
