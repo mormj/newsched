@@ -40,7 +40,9 @@ private:
 
 public:
     typedef std::shared_ptr<cuda_buffer_pinned> sptr;
-    cuda_buffer_pinned(){};
+    cuda_buffer_pinned(){
+        set_type("cuda_buffer_pinned");
+    };
     cuda_buffer_pinned(size_t num_items,
                 size_t item_size);
     ~cuda_buffer_pinned();

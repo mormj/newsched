@@ -155,9 +155,11 @@ public:
                     src_da_cast->set_buffer(buf);
                     auto tmp = std::dynamic_pointer_cast<buffer>(src_da_cast);
                     d_edge_buffers[e.identifier()] = tmp;
+                    gr_log_info(_logger, "Edge: {}, Buf: {}",e.identifier(), buf->type());
                 } else {
                     d_edge_buffers[e.identifier()] =
                         std::dynamic_pointer_cast<buffer>(src_da_cast);
+                    gr_log_info(_logger, "Edge: {}, Buf: SRC_DA",e.identifier());
                 }
             } else if (dst_da_cast != nullptr) {
                 if (dst_da_cast->buffer_location() == buffer_location_t::LOCAL) {
@@ -173,9 +175,11 @@ public:
                     dst_da_cast->set_buffer(buf);
                     auto tmp = std::dynamic_pointer_cast<buffer>(dst_da_cast);
                     d_edge_buffers[e.identifier()] = tmp;
+                    gr_log_info(_logger, "Edge: {}, Buf: {}",e.identifier(), buf->type());
                 } else {
                     d_edge_buffers[e.identifier()] =
                         std::dynamic_pointer_cast<buffer>(dst_da_cast);
+                    gr_log_info(_logger, "Edge: {}, Buf: DST_DA",e.identifier());
                 }
 
             }
@@ -190,7 +194,10 @@ public:
                 }
 
                 d_edge_buffers[e.identifier()] = buf;
+                gr_log_info(_logger, "Edge: {}, Buf: {}",e.identifier(), buf->type());
             }
+
+            
         }
 
         for (auto& b : fg->calc_used_blocks()) {

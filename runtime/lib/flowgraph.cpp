@@ -69,7 +69,7 @@ void flowgraph::partition(std::vector<domain_conf>& confs)
                 // Is the other block in our current partition
                 if (std::find(blocks.begin(), blocks.end(), other_block) !=
                     blocks.end()) {
-                    g->connect(e.src(), e.dst());
+                    g->connect(e.src(), e.dst(), e.buffer_factory(), e.buf_properties());
                 } else {
                     // add this edge to the list of domain crossings
                     // domain_crossings.push_back(std::make_tuple(g,e));

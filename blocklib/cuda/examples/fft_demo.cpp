@@ -131,25 +131,25 @@ int main(int argc, char* argv[])
 
         auto fg(std::make_shared<flowgraph>());
 
-        fg->connect(src, 0, head, 0, CUDA_BUFFER_PINNED_ARGS);
-        fg->connect(head, 0, fft_blks[0], 0, CUDA_BUFFER_PINNED_ARGS);
-        fg->connect(fft_blks[0], 0, fft_blks[1], 0, CUDA_BUFFER_PINNED_ARGS);
-        fg->connect(fft_blks[1], 0, fft_blks[2], 0, CUDA_BUFFER_PINNED_ARGS);
-        fg->connect(fft_blks[2], 0, fft_blks[3], 0, CUDA_BUFFER_PINNED_ARGS);
-        fg->connect(fft_blks[3], 0, snk, 0, CUDA_BUFFER_PINNED_ARGS);
+        fg->connect(src, 0, head, 0, SIMPLE_BUFFER_ARGS);
+        fg->connect(head, 0, fft_blks[0], 0, CUDA_BUFFER_ARGS_H2D);
+        fg->connect(fft_blks[0], 0, fft_blks[1], 0, CUDA_BUFFER_ARGS_D2D);
+        fg->connect(fft_blks[1], 0, fft_blks[2], 0, CUDA_BUFFER_ARGS_D2D);
+        fg->connect(fft_blks[2], 0, fft_blks[3], 0, CUDA_BUFFER_ARGS_D2D);
+        fg->connect(fft_blks[3], 0, snk, 0, CUDA_BUFFER_ARGS_D2H);
 
         std::shared_ptr<schedulers::scheduler_st> sched1(
             new schedulers::scheduler_st("sched1", 32768));
-        sched1->set_default_buffer_factory(cuda_buffer_pinned::make);
+        sched1->set_default_buffer_factory(CUDA_BUFFER_ARGS_D2D);
         std::shared_ptr<schedulers::scheduler_st> sched2(
             new schedulers::scheduler_st("sched2", 32768));
-        sched2->set_default_buffer_factory(cuda_buffer_pinned::make);
+        sched2->set_default_buffer_factory(CUDA_BUFFER_ARGS_D2D);
         std::shared_ptr<schedulers::scheduler_st> sched3(
             new schedulers::scheduler_st("sched3", 32768));
-        sched3->set_default_buffer_factory(cuda_buffer_pinned::make);
+        sched3->set_default_buffer_factory(CUDA_BUFFER_ARGS_D2D);
         std::shared_ptr<schedulers::scheduler_st> sched4(
             new schedulers::scheduler_st("sched4", 32768));
-        sched4->set_default_buffer_factory(cuda_buffer_pinned::make);
+        sched4->set_default_buffer_factory(CUDA_BUFFER_ARGS_D2D);
 
         fg->add_scheduler(sched1);
         fg->add_scheduler(sched2);

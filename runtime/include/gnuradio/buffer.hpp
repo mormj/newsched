@@ -32,10 +32,12 @@ class buffer
 {
 protected:
     std::string _name;
+    std::string _type;
     int _total_read = 0;
     int _total_written = 0;
 
-
+    void set_type(const std::string& type) { _type = type; }
+    
 public:
     virtual void* read_ptr() = 0;
     virtual void* write_ptr() = 0;
@@ -62,6 +64,8 @@ public:
 
     void set_name(const std::string& name) { _name = name; }
     std::string name() { return _name; }
+
+    std::string type() { return _type; }
 };
 
 typedef std::shared_ptr<buffer> buffer_sptr;

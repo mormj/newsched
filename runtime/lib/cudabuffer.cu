@@ -28,6 +28,7 @@ cuda_buffer::cuda_buffer(size_t num_items, size_t item_size, cuda_buffer_type ty
         &_device_buffer,
         _buf_size *
             2); // double circular buffer - should do something more intelligent here
+    set_type("cuda_buffer_" + std::to_string((int)_type));
 }
 cuda_buffer::~cuda_buffer() { cudaFree(_device_buffer); }
 

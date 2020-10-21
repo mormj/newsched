@@ -34,6 +34,8 @@ public:
         _buffer.resize(_buf_size * 2); // double circular buffer
         _read_index = 0;
         _write_index = 0;
+
+        set_type("simplebuffer");
     }
 
     static buffer_sptr make(size_t num_items,
@@ -177,3 +179,5 @@ public:
 };
 
 } // namespace gr
+
+#define SIMPLE_BUFFER_ARGS simplebuffer::make
