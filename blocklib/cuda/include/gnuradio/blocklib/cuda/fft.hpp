@@ -23,9 +23,9 @@ public:
             std::make_shared<fft>(fft_size, forward, shift, batch_size);
 
         ptr->add_port(port<gr_complex>::make(
-            "input", port_direction_t::INPUT, port_type_t::STREAM));
+            "input", port_direction_t::INPUT, port_type_t::STREAM, {fft_size}));
         ptr->add_port(port<gr_complex>::make(
-            "output", port_direction_t::OUTPUT, port_type_t::STREAM));
+            "output", port_direction_t::OUTPUT, port_type_t::STREAM, {fft_size}));
 
         // ptr->add_param(
         //     param<T>::make(fft<T>::params::id_k, "k", k, &ptr->d_k));

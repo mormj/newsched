@@ -14,9 +14,9 @@
 #include <gnuradio/logging.hpp>
 #include <gnuradio/schedulers/st/scheduler_st.hpp>
 
-#include <gnuradio/simplebuffer.hpp>
 #include <gnuradio/cudabuffer.hpp>
 #include <gnuradio/cudabuffer_pinned.hpp>
+#include <gnuradio/simplebuffer.hpp>
 
 using namespace gr;
 
@@ -25,14 +25,85 @@ int main(int argc, char* argv[])
     auto logger = logging::get_logger("FFT_DEMO", "debug");
 
     int batch_size = 1;
-    int fft_size = 4;
-    int samples = 1000000; // how many floats
+    int fft_size = 1024;
+    int samples = 100000000; // how many floats
     int actual_samples = (fft_size * batch_size) * (samples / (fft_size * batch_size));
-//         std::vector<float> bh_window{
-// #include "window_blackmanharris_32.h"
-//         };
+
+
+    if (0) { // data validation
+
+        auto fft = cuda::fft::make(fft_size, true, false, batch_size);
+
+        std::vector<gr_complex> input_data(fft_size * (samples / fft_size));
+        for (auto i = 0; i < fft_size * (samples / fft_size); i++)
+            input_data[i] = gr_complex(i % 256, 255 - (i % 256));
+
+        auto src = blocks::vector_source_c::make(input_data, false, fft_size);
+        // auto src = blocks::null_source::make(sizeof(gr_complex) * fft_size);
+        // auto snk = blocks::null_sink::make(sizeof(gr_complex) * fft_size);
+        auto snk = blocks::vector_sink_c::make(fft_size);
+        // auto head = blocks::head::make(sizeof(gr_complex) * fft_size, samples / fft_size);
+
+        auto fg(std::make_shared<flowgraph>());
+
+        // fg->connect(src, 0, head, 0);
+        // fg->connect(head,
+        fg->connect(src,
+                    // fg->connect(src,
+                    0,
+                    fft,
+                    0,
+                    // CUDA_BUFFER_PINNED_ARGS);
+                    CUDA_BUFFER_ARGS_H2D);
+        fg->connect(fft,
+                    0,
+                    snk,
+                    0,
+                    // CUDA_BUFFER_PINNED_ARGS);
+                    CUDA_BUFFER_ARGS_D2H);
+
+        // fg->connect(src, 0, head, 0);
+        // fg->connect(head,
+        //             // fg->connect(src,
+        //             0,
+        //             fft,
+        //             0,
+        //             CUDA_BUFFER_ARGS_H2D);
+        // fg->connect(fft,
+        //             0,
+        //             snk,
+        //             0,
+        //             CUDA_BUFFER_ARGS_D2H);
+
+
+        std::shared_ptr<schedulers::scheduler_st> sched1(
+            new schedulers::scheduler_st("sched1", 32768));
+        fg->set_scheduler(sched1);
+        fg->validate();
+
+        gr_log_debug(logger, "fft {}, src {}, snk, {}", fft->id(), src->id(), snk->id());
+
+        auto t1 = std::chrono::steady_clock::now();
+        fg->start();
+        fg->wait();
+
+#if 1
+        auto d = snk->data();
+        std::cout << "data.size() = " << d.size() << std::endl;
+        for (int i = 0; i < 100; i++) {
+            std::cout << std::real(d[i]) << "+" << std::imag(d[i]) << ",";
+        }
+        std::cout << std::endl;
+#endif
+        auto t2 = std::chrono::steady_clock::now();
+        std::chrono::duration<double, std::milli> fp_ms = t2 - t1;
+        std::cout << "fft_demo took: " << fp_ms.count() << std::endl;
+        std::cout << (1.0 / 1000.0) * (float)actual_samples / fp_ms.count()
+                  << " MSamps/sec" << std::endl;
+    }
+
     // Basic test of the single threaded scheduler single instance
-    if (0) {
+    else if (1) {
 
         auto fft = cuda::fft::make(fft_size, true, false, batch_size);
 
@@ -50,7 +121,7 @@ int main(int argc, char* argv[])
 
         fg->connect(src, 0, head, 0);
         fg->connect(head,
-        // fg->connect(src,
+                    // fg->connect(src,
                     0,
                     fft,
                     0,
@@ -91,9 +162,8 @@ int main(int argc, char* argv[])
 #if 0
         auto d = snk->data();
         std::cout << "data.size() = " << d.size() << std::endl;
-        for (int i=0; i<100; i++)
-        {
-            std::cout << real(d[i]) << "+" << imag(d[i]) << ",";
+        for (int i = 0; i < 100; i++) {
+            std::cout << std::real(d[i]) << "+" << std::imag(d[i]) << ",";
         }
         std::cout << std::endl;
 #endif

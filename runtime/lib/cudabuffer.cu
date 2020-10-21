@@ -38,8 +38,7 @@ buffer_sptr cuda_buffer::make(size_t num_items,
 {
     auto cbp = std::dynamic_pointer_cast<cuda_buffer_properties>(buffer_properties);
     if (cbp != nullptr) {
-        return buffer_sptr(
-            new cuda_buffer(num_items, item_size, cbp->buffer_type()));
+        return buffer_sptr(new cuda_buffer(num_items, item_size, cbp->buffer_type()));
     } else {
         throw std::runtime_error(
             "Failed to cast buffer properties to cuda_buffer_properties");
@@ -140,17 +139,18 @@ void cuda_buffer::post_write(int num_items)
                    bytes_written,
                    cudaMemcpyHostToDevice);
 
-        memcpy(&_host_buffer[wi2], &_host_buffer[wi1], num_bytes_1);
+        // memcpy(&_host_buffer[wi2], &_host_buffer[wi1], num_bytes_1);
         cudaMemcpy(&_device_buffer[wi2],
                    &_device_buffer[wi1],
                    num_bytes_1,
                    cudaMemcpyDeviceToDevice);
-        if (num_bytes_2)
-            memcpy(&_host_buffer[0], &_host_buffer[_buf_size], num_bytes_2);
-        cudaMemcpy(&_device_buffer[0],
-                   &_device_buffer[_buf_size],
-                   num_bytes_2,
-                   cudaMemcpyDeviceToDevice);
+        if (num_bytes_2) {
+            // memcpy(&_host_buffer[0], &_host_buffer[_buf_size], num_bytes_2);
+            cudaMemcpy(&_device_buffer[0],
+                       &_device_buffer[_buf_size],
+                       num_bytes_2,
+                       cudaMemcpyDeviceToDevice);
+        }
     } else if (_buffer_type == cuda_buffer_type::D2H) {
         cudaMemcpy(&_host_buffer[wi1],
                    &_device_buffer[wi1],
@@ -158,8 +158,18 @@ void cuda_buffer::post_write(int num_items)
                    cudaMemcpyDeviceToHost);
 
         memcpy(&_host_buffer[wi2], &_host_buffer[wi1], num_bytes_1);
-        if (num_bytes_2)
+        // cudaMemcpy(&_device_buffer[wi2],
+        //            &_device_buffer[wi1],
+        //            num_bytes_1,
+        //            cudaMemcpyDeviceToDevice);
+
+        if (num_bytes_2) {
             memcpy(&_host_buffer[0], &_host_buffer[_buf_size], num_bytes_2);
+            // cudaMemcpy(&_device_buffer[0],
+            //            &_device_buffer[_buf_size],
+            //            num_bytes_2,
+            //            cudaMemcpyDeviceToDevice);
+        }
     } else // D2D
     {
         cudaMemcpy(&_device_buffer[wi2],
