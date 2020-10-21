@@ -54,34 +54,35 @@ int main(int argc, char* argv[])
 
         auto fg(std::make_shared<flowgraph>());
 
+        // fg->connect(src, 0, head, 0);
+        // fg->connect(head,
+        // // fg->connect(src,
+        //             0,
+        //             fft,
+        //             0,
+        //             cuda_buffer_pinned::make,
+        //             cuda_buffer_pinned_properties::make());
+        // fg->connect(fft,
+        //             0,
+        //             snk,
+        //             0,
+        //             cuda_buffer_pinned::make,
+        //             cuda_buffer_pinned_properties::make());
+
         fg->connect(src, 0, head, 0);
         fg->connect(head,
         // fg->connect(src,
                     0,
                     fft,
                     0,
-                    cuda_buffer_pinned::make,
-                    cuda_buffer_pinned_properties::make());
+                    cuda_buffer::make,
+                    cuda_buffer_properties::make(cuda_buffer_type::H2D));
         fg->connect(fft,
                     0,
                     snk,
                     0,
-                    cuda_buffer_pinned::make,
-                    cuda_buffer_pinned_properties::make());
-        // fg->connect(src, 0, head, 0);
-        // fg->connect(head,
-        // fg->connect(src,
-        //             0,
-        //             fft,
-        //             0,
-        //             cuda_buffer::make,
-        //             cuda_buffer_properties::make(cuda_buffer_type::H2D));
-        // fg->connect(fft,
-        //             0,
-        //             snk,
-        //             0,
-        //             cuda_buffer::make,
-        //             cuda_buffer_properties::make(cuda_buffer_type::D2H));
+                    cuda_buffer::make,
+                    cuda_buffer_properties::make(cuda_buffer_type::D2H));
 
 
 

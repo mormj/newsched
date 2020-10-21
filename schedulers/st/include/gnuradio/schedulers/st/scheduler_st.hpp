@@ -227,7 +227,7 @@ public:
         d_thread = std::thread(thread_body, this);
 
         push_message(std::make_shared<scheduler_action>(
-            scheduler_action(scheduler_action_t::NOTIFY_ALL)));
+            scheduler_action_t::NOTIFY_ALL));
     }
     void stop()
     {
@@ -491,7 +491,7 @@ public:
     void notify_self()
     {
         push_message(std::make_shared<scheduler_action>(
-            scheduler_action(scheduler_action_t::NOTIFY_ALL)));
+            scheduler_action_t::NOTIFY_ALL));
     }
 
     std::vector<scheduler_sptr> get_neighbors_upstream(nodeid_t blkid)
@@ -540,12 +540,12 @@ public:
     void notify_upstream(scheduler_sptr upstream_sched)
     {
         upstream_sched->push_message(std::make_shared<scheduler_action>(
-            scheduler_action(scheduler_action_t::NOTIFY_INPUT)));
+            scheduler_action_t::NOTIFY_INPUT));
     }
     void notify_downstream(scheduler_sptr downstream_sched)
     {
         downstream_sched->push_message(std::make_shared<scheduler_action>(
-            scheduler_action(scheduler_action_t::NOTIFY_OUTPUT)));
+            scheduler_action_t::NOTIFY_OUTPUT));
     }
 
     void handle_parameter_query(std::shared_ptr<param_query_action> item)

@@ -44,7 +44,7 @@ public:
     static sptr make(direct_sync_sptr sync, port_sptr other_port)
     {
         auto ptr =
-            std::make_shared<domain_adapter_direct_svr>(domain_adapter_direct_svr(sync));
+            std::make_shared<domain_adapter_direct_svr>(sync);
 
         ptr->add_port(port_base::make("output",
                                       port_direction_t::OUTPUT,
@@ -117,7 +117,7 @@ public:
     static sptr make(direct_sync_sptr sync, port_sptr other_port)
     {
         auto ptr =
-            std::make_shared<domain_adapter_direct_cli>(domain_adapter_direct_cli(sync));
+            std::make_shared<domain_adapter_direct_cli>(sync);
 
         // Type of port is not known at compile time
         ptr->add_port(port_base::make("input",

@@ -170,7 +170,7 @@ protected:
 
 public:
     typedef std::shared_ptr<graph> sptr;
-    static sptr make() { return std::make_shared<graph>(graph()); }
+    static sptr make() { return std::make_shared<graph>(); }
     graph() : node() {}
     ~graph() {}
     std::shared_ptr<graph> base() { return shared_from_this(); }

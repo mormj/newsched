@@ -28,7 +28,7 @@ public:
                      uint64_t workspace_size = (1 << 30),
                      int dla_core = -1)
     {
-        auto ptr = std::make_shared<infer>(infer(onnx_pathname, itemsize, memory_model, workspace_size, dla_core));
+        auto ptr = std::make_shared<infer>(onnx_pathname, itemsize, memory_model, workspace_size, dla_core);
 
         ptr->add_port(port<float>::make("input",
                                     port_direction_t::INPUT,
