@@ -12,6 +12,10 @@ import itertools
 import numpy as np
 import argparse
 import subprocess
+import json
+import datetime
+import re
+import os 
 
 def rangepair(arg):
     pairstr = arg.split(':')
@@ -33,6 +37,21 @@ varnames = [y[0] for y in args.vars]
 varvalues = [y[1] for y in args.vars]
 
 
+pattern = r'\[PROFILE\](.*)\[PROFILE\]'
+
+params = {}
+params['operation'] = args.operation
+params['pathname'] = args.pathname
+params['vars'] = {v[0]:v[1] for v in args.vars}
+
+json_output = {}
+json_output['params'] = params
+res = []
+json_output['results'] = res
+
+dtstr = datetime.datetime.today()
+results_filename = f'benchmark_newsched_{os.path.split(params["pathname"])[-1]}_results_{dtstr:%y%d%m_%H%M%S}.json'
+
 for x in itertools.product(*varvalues):
     if (args.operation == "time"):
         shellcmd = ['cset', 'shield', '--userset=sdr', '--exec', '--']
@@ -40,8 +59,11 @@ for x in itertools.product(*varvalues):
         shellcmd = ['perf', 'record', '-C', '2,3,6,7', '-o', 'migrations_rt.dat', '-m', '32768', '-e', 'sched:sched_migrate_task' ,'--', 'cset', 'shield', '--userset=sdr', '--exec', '--']
 
 
+    r = {}
+
     shellcmd.append(args.pathname)
     for (n,v) in zip(varnames,x):
+        r[n] = v
         if (type(v) == bool):
             if (v):
                 shellcmd.append('--' + n)
@@ -54,8 +76,17 @@ for x in itertools.product(*varvalues):
                 stdout=subprocess.PIPE, 
                 stderr=subprocess.STDOUT)
     stdout,stderr = myshell.communicate()
+    time = re.search(pattern,str(stdout)).group(1)
+    r['time'] = time
+    r['tput'] = r['samples'] / float(time)
     for l in str(stdout).split('\\n'):
         print(l)
+
+    res.append(r)
+    with open(results_filename, 'w') as json_file:
+        json.dump(json_output, json_file)
+
+
         # print(str(stdout[0]).split('\\n'))
 
 

@@ -103,7 +103,7 @@ int main(int argc, char* argv[])
     }
 
     // Basic test of the single threaded scheduler single instance
-    else if (1) {
+    else if (0) {
 
         auto fft = cuda::fft::make(fft_size, true, false, batch_size);
 

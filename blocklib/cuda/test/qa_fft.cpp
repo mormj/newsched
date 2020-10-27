@@ -37,6 +37,12 @@ TEST_CASE("block outputs one output to 2 input blocks")
     std::vector<gr_complex> input_data(actual_samples);
     for (auto i = 0; i < actual_samples; i++)
         input_data[i] = gr_complex(i % 256, 255 - (i % 256));
+    
+    auto expected_output = input_data;
+    for (unsigned i=0; i<expected_output.size(); i++)
+    {
+        expected_output[i] *= 256.0;
+    }
 
     auto src = blocks::vector_source_c::make(input_data, false, fft_size);
     auto snk = blocks::vector_sink_c::make(fft_size);
@@ -73,6 +79,6 @@ TEST_CASE("block outputs one output to 2 input blocks")
     auto d = snk->data();
 
 
-    REQUIRE_THAT(d, Catch::Equals(input_data));
+    REQUIRE_THAT(d, Catch::Equals(expected_output));
  
 }
