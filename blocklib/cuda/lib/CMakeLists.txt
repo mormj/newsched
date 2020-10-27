@@ -5,6 +5,7 @@ add_library(gnuradio-blocklib-cuda-cu SHARED
   fft.cu
   multiply_const.cu
   multiply_const_doublecopy.cu
+  passthrough.cu
   )
 
 target_compile_options(gnuradio-blocklib-cuda-cu PRIVATE $<$<COMPILE_LANGUAGE:CUDA>:-gencode arch=compute_50,code=sm_50>)
@@ -17,6 +18,7 @@ add_library(gnuradio-blocklib-cuda SHARED
   infer.cpp
   multiply_const.cpp
   multiply_const_doublecopy.cpp
+  passthrough.cpp
   )
 target_compile_options(gnuradio-blocklib-cuda PRIVATE -Wno-deprecated-declarations)
 

@@ -4,6 +4,7 @@
 
 list(APPEND TEST_SOURCES
 qa_fft.cpp
+qa_passthrough.cpp
 )
 
 add_executable(qa_blocklib_cuda ${TEST_SOURCES})
