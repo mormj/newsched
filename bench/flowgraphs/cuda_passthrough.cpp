@@ -88,7 +88,7 @@ int main(int argc, char* argv[])
 
     fg->connect(src, 0, head, 0, SIMPLE_BUFFER_ARGS);
 
-    std::vector<std::shared_ptr<schedulers::scheduler_st>> scheds(nblocks);
+    std::vector<std::shared_ptr<schedulers::scheduler_st>> scheds(nblocks+3);
     if (mem_model == 0) {
         fg->connect(head, 0, passthrough_blks[0], 0, CUDA_BUFFER_ARGS_H2D);
         for (int i = 0; i < nblocks - 1; i++) {
@@ -101,6 +101,14 @@ int main(int argc, char* argv[])
             scheds[i]->set_default_buffer_factory(CUDA_BUFFER_ARGS_D2D);
             fg->add_scheduler(scheds[i]);
         }
+
+        for (int i=0; i<3; i++)
+        {
+            scheds[nblocks+i] = std::make_shared<schedulers::scheduler_st>("sched1_blk", 32768);
+            scheds[nblocks+i]->set_default_buffer_factory(SIMPLE_BUFFER_ARGS);
+            fg->add_scheduler(scheds[nblocks+i]);
+        }
+
     } else {
         fg->connect(head, 0, passthrough_blks[0], 0, CUDA_BUFFER_PINNED_ARGS);
         for (int i = 0; i < nblocks - 1; i++) {
@@ -113,25 +121,39 @@ int main(int argc, char* argv[])
             scheds[i]->set_default_buffer_factory(CUDA_BUFFER_PINNED_ARGS);
             fg->add_scheduler(scheds[i]);
         }
+
+        for (int i=0; i<3; i++)
+        {
+            scheds[nblocks+i] = std::make_shared<schedulers::scheduler_st>("sched1_blk", 32768);
+            scheds[nblocks+i]->set_default_buffer_factory(SIMPLE_BUFFER_ARGS);
+            fg->add_scheduler(scheds[nblocks+i]);
+        }
     }
 
 
     domain_conf_vec dconf;
 
 
-    if (nblocks == 1) {
-        dconf.push_back(domain_conf(scheds[0], { src, head, passthrough_blks[0], snk }, da_conf));
-    } else {
-        dconf.push_back(domain_conf(scheds[0], { src, head, passthrough_blks[0] }, da_conf));
-        for (int i = 1; i < nblocks - 1; i++) {
-            dconf.push_back(domain_conf(scheds[i], { passthrough_blks[i] }, da_conf));
-        }
-        dconf.push_back(
-            domain_conf(scheds[nblocks - 1], { passthrough_blks[nblocks - 1], snk }, da_conf));
+    // if (nblocks == 1) {
+    //     dconf.push_back(domain_conf(scheds[0], { src, head, passthrough_blks[0], snk }, da_conf));
+    // } else {
+    //     dconf.push_back(domain_conf(scheds[0], { src, head, passthrough_blks[0] }, da_conf));
+    //     for (int i = 1; i < nblocks - 1; i++) {
+    //         dconf.push_back(domain_conf(scheds[i], { passthrough_blks[i] }, da_conf));
+    //     }
+    //     dconf.push_back(
+    //         domain_conf(scheds[nblocks - 1], { passthrough_blks[nblocks - 1], snk }, da_conf));
+    // }
+
+    for (int i=0; i<nblocks; i++)
+    {
+        dconf.push_back(domain_conf(scheds[i], { passthrough_blks[0] }, da_conf));
     }
-
+    dconf.push_back(domain_conf(scheds[nblocks+0], { src }, da_conf));
+    dconf.push_back(domain_conf(scheds[nblocks+1], { head }, da_conf));
+    dconf.push_back(domain_conf(scheds[nblocks+2], { snk }, da_conf));
+    
     fg->partition(dconf);
-
 
     if (rt_prio && gr::enable_realtime_scheduling() != gr::rt_status_t::RT_OK)
         std::cout << "Unable to enable realtime scheduling " << std::endl;

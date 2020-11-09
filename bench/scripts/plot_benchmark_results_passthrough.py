@@ -5,6 +5,8 @@ import itertools
 from math import log2
 
 filename = 'benchmark_newsched_bm_cuda_passthrough_results_202710_114118.json'
+# filename = 'build/benchmark_newsched_bm_cuda_passthrough_results_202710_125706.json'
+filename = 'benchmark_newsched_bm_cuda_passthrough_results_202710_133449.json'
 
 # colors = ['blue','green','red','gray','fuchsia','gold', 'maroon', 'silver']
 colors = plt.get_cmap("tab10")

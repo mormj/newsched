@@ -46,11 +46,10 @@ public:
         auto ptr =
             std::make_shared<domain_adapter_direct_svr>(sync);
 
-        ptr->add_port(port_base::make("output",
+        ptr->add_port(untyped_port::make("output",
                                       port_direction_t::OUTPUT,
-                                      other_port->data_type(),
-                                      port_type_t::STREAM,
-                                      other_port->dims()));
+                                      other_port->itemsize(),
+                                      port_type_t::STREAM));
 
         ptr->start_thread(ptr); // start thread with reference to shared pointer
 
@@ -120,11 +119,11 @@ public:
             std::make_shared<domain_adapter_direct_cli>(sync);
 
         // Type of port is not known at compile time
-        ptr->add_port(port_base::make("input",
+        ptr->add_port(untyped_port::make("input",
                                       port_direction_t::INPUT,
-                                      other_port->data_type(),
-                                      port_type_t::STREAM,
-                                      other_port->dims()));
+                                      other_port->itemsize(),
+                                      port_type_t::STREAM));
+                    
 
         return ptr;
     }
