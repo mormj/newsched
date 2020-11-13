@@ -268,6 +268,7 @@ scheduler_st::run_one_iteration(std::vector<block_sptr> blocks)
             continue;
         }
 
+        int idx = 0;
         // for each output port of the block
         for (auto p : b->output_stream_ports()) {
 
@@ -279,15 +280,17 @@ scheduler_st::run_one_iteration(std::vector<block_sptr> blocks)
 
             void* write_ptr = nullptr;
             uint64_t nitems_written;
+            
             for (auto p_buf : d_block_buffers[p]) {
                 buffer_info_t write_info;
                 ready = p_buf->write_info(write_info);
                 gr_log_debug(_debug_logger,
-                             "write_info {} - {} @ {} {}",
-                             b->alias(),
+                             "write_info {}/{} - {} @ {} {}",
+                             b->alias(), idx,
                              write_info.n_items,
                              write_info.ptr,
                              write_info.item_size);
+                // std::cout << "write_info " << b->alias() << "/" << idx << " - " << write_info.n_items << "@" << write_info.ptr << " " << write_info.item_size << std::endl;
                 if (!ready)
                     break;
 
@@ -314,6 +317,8 @@ scheduler_st::run_one_iteration(std::vector<block_sptr> blocks)
                     write_ptr = write_info.ptr;
                     nitems_written = write_info.total_items;
                 }
+
+                
             }
 
             max_output_buffer = std::min(max_output_buffer, s_max_buf_items);
@@ -333,8 +338,15 @@ scheduler_st::run_one_iteration(std::vector<block_sptr> blocks)
                 }
             }
 
+            if (!write_ptr) // FIXME - figure out why writeptr returns 0 sometimes
+            {
+                ready = false;
+                break;
+            }
             work_output.push_back(
                 block_work_output(max_output_buffer, nitems_written, write_ptr, tags));
+
+            idx++;
         }
 
         if (!ready) {
@@ -354,7 +366,11 @@ scheduler_st::run_one_iteration(std::vector<block_sptr> blocks)
                 else
                     gr_log_debug(_debug_logger, "do_work for {}", b->alias());
 
-
+                // std::cout << "do_work for " << b->alias() << std::endl;
+                // for (auto& entry : work_output)
+                // {
+                //     std::cout << "   " << entry.n_items << " " << entry.items << std::endl;
+                // }
                 ret = b->do_work(work_input, work_output);
                 gr_log_debug(_debug_logger, "do_work returned {}", ret);
 
