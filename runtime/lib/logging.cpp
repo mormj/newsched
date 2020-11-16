@@ -115,6 +115,11 @@ logger_sptr logging::get_logger(const std::string& logger_name,
         case logger_type_t::console:
             requested_logger = logger_console_config::make(logger_name, *it);
             break;
+        case logger_type_t::none:
+            break;
+        default:
+            throw std::invalid_argument("Currently only basic and console are supported log types");
+            break;
         }
         if (requested_logger) {
             requested_logger->set_level((*it)->level);
