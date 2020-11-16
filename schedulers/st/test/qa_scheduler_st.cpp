@@ -9,14 +9,13 @@
 #include <gnuradio/blocklib/blocks/throttle.hpp>
 #include <gnuradio/blocklib/blocks/vector_sink.hpp>
 #include <gnuradio/blocklib/blocks/vector_source.hpp>
-#include <gnuradio/domain_adapter_shm.hpp>
 #include <gnuradio/domain_adapter_direct.hpp>
+#include <gnuradio/domain_adapter_shm.hpp>
 #include <gnuradio/flowgraph.hpp>
 #include <gnuradio/schedulers/st/scheduler_st.hpp>
 #include <gnuradio/vmcirc_buffer.hpp>
 
 using namespace gr;
-
 
 TEST(SchedulerSTTest, TwoSinks)
 {
@@ -140,20 +139,24 @@ TEST(SchedulerSTTest, ParameterBasic)
 
 TEST(SchedulerSTTest, BlockFanout)
 {
-    int nsamples = 1000000;
+    int nsamples = 50;
+    int buf_size = 10;
     std::vector<gr_complex> input_data(nsamples);
     std::vector<gr_complex> expected_data(nsamples);
-    int buffer_type = 1;
+    int buffer_type = 0;
     float k = 1.0;
     for (int i = 0; i < nsamples; i++) {
         input_data[i] = gr_complex(2 * i, 2 * i + 1);
         // expected_output[i] = gr_complex(k*2*i,k*2*i+1);
     }
 
-    for (auto domain_adapt : { 0 }) { // domain adapter case requires a fanout block currently
+    for (auto domain_adapt :
+         { 0 }) { // domain adapter case requires a fanout block currently
         for (auto nblocks : { 2, 8, 16 }) {
             int veclen = 1;
             auto src = blocks::vector_source_c::make(input_data);
+            auto fanout = blocks::fanout::make(sizeof(gr_complex) * veclen,
+                                               nblocks); // use fixed fanout block for now
             std::vector<blocks::vector_sink_c::sptr> sink_blks(nblocks);
             std::vector<blocks::multiply_const_cc::sptr> mult_blks(nblocks);
 
@@ -164,14 +167,26 @@ TEST(SchedulerSTTest, BlockFanout)
             flowgraph_sptr fg(new flowgraph());
 
             if (buffer_type == 0) {
+
                 for (int i = 0; i < nblocks; i++) {
-                    fg->connect(src, 0, mult_blks[i], 0);
+                    if (domain_adapt == 1) {
+                        fg->connect(src, 0, fanout, 0);
+                        fg->connect(fanout, i, mult_blks[i], 0);
+                    } else {
+                        fg->connect(src, 0, mult_blks[i], 0);
+                    }
+
                     fg->connect(mult_blks[i], 0, sink_blks[i], 0);
                 }
 
             } else {
                 for (int i = 0; i < nblocks; i++) {
-                    fg->connect(src, 0, mult_blks[i], 0, VMCIRC_BUFFER_ARGS);
+                    if (domain_adapt == 1) {
+                        fg->connect(src, 0, fanout, 0, VMCIRC_BUFFER_ARGS);
+                        fg->connect(fanout, i, mult_blks[i], 0, VMCIRC_BUFFER_ARGS);
+                    } else {
+                        fg->connect(src, 0, mult_blks[i], 0, VMCIRC_BUFFER_ARGS);
+                    }
                     fg->connect(mult_blks[i], 0, sink_blks[i], 0, VMCIRC_BUFFER_ARGS);
                 }
             }
@@ -186,11 +201,13 @@ TEST(SchedulerSTTest, BlockFanout)
                 auto da_conf =
                     domain_adapter_direct_conf::make(buffer_preference_t::DOWNSTREAM);
                 std::vector<std::shared_ptr<schedulers::scheduler_st>> scheds(
-                    nblocks * 2 + 1);
-                for (int i = 0; i < 1 + 2 * nblocks; i++) {
+                    nblocks * 2 + 2);
+                for (int i = 0; i < 2 + 2 * nblocks; i++) {
                     scheds[i] = std::make_shared<schedulers::scheduler_st>(
-                        "sched" + std::to_string(i + 1), 32768);
-                    scheds[i]->set_default_buffer_factory(VMCIRC_BUFFER_ARGS);
+                        "sched" + std::to_string(i + 1), buf_size);
+                    if (buffer_type == 1) {
+                        scheds[i]->set_default_buffer_factory(VMCIRC_BUFFER_ARGS);
+                    }
                     fg->add_scheduler(scheds[i]);
                 }
 
@@ -201,21 +218,23 @@ TEST(SchedulerSTTest, BlockFanout)
                     dconf.push_back(
                         domain_conf(scheds[2 * i + 1], { sink_blks[i] }, da_conf));
                 }
-                dconf.push_back(domain_conf(scheds[2 * nblocks], { src }, da_conf));
+                dconf.push_back(domain_conf(scheds[2 * nblocks + 0], { src }, da_conf));
+                dconf.push_back(
+                    domain_conf(scheds[2 * nblocks + 1], { fanout }, da_conf));
 
                 fg->partition(dconf);
             }
-
             fg->start();
             fg->wait();
 
             for (int n = 0; n < nblocks; n++) {
                 for (int i = 0; i < nsamples; i++) {
                     input_data[i] = gr_complex(2 * i, 2 * i + 1);
-                    expected_data[i] = gr_complex(k*2*i,k*(2*i+1));
+                    expected_data[i] = gr_complex(k * 2 * i, k * (2 * i + 1));
                 }
 
                 EXPECT_EQ(sink_blks[n]->data(), expected_data);
+                EXPECT_EQ(sink_blks[n]->data().size(), expected_data.size());
             }
         }
     }
