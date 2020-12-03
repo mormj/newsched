@@ -7,7 +7,7 @@ add_library(gnuradio-blocklib-cuda-cu SHARED
   multiply_const_doublecopy.cu
   )
 
-target_compile_options(gnuradio-blocklib-cuda-cu PRIVATE $<$<COMPILE_LANGUAGE:CUDA>:-gencode arch=compute_50,code=sm_50>)
+target_compile_options(gnuradio-blocklib-cuda-cu PRIVATE $<$<COMPILE_LANGUAGE:CUDA>:-gencode arch=compute_72,code=sm_72>)
 set_target_properties(gnuradio-blocklib-cuda-cu PROPERTIES POSITION_INDEPENDENT_CODE ON)
 set_target_properties(gnuradio-blocklib-cuda-cu PROPERTIES CUDA_SEPARABLE_COMPILATION ON)
 
