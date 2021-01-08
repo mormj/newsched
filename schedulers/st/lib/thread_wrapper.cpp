@@ -25,30 +25,30 @@ void thread_wrapper::mask_signals()
     sigaddset(&new_set, SIGTERM);
     sigaddset(&new_set, SIGUSR1);
     sigaddset(&new_set, SIGCHLD);
-// #ifdef SIGPOLL
+    // #ifdef SIGPOLL
     sigaddset(&new_set, SIGPOLL);
-// #endif
-// #ifdef SIGPROF
+    // #endif
+    // #ifdef SIGPROF
     sigaddset(&new_set, SIGPROF);
-// #endif
-// #ifdef SIGSYS
+    // #endif
+    // #ifdef SIGSYS
     sigaddset(&new_set, SIGSYS);
-// #endif
-// #ifdef SIGTRAP
+    // #endif
+    // #ifdef SIGTRAP
     sigaddset(&new_set, SIGTRAP);
-// #endif
-// #ifdef SIGURG
+    // #endif
+    // #ifdef SIGURG
     sigaddset(&new_set, SIGURG);
-// #endif
-// #ifdef SIGVTALRM
+    // #endif
+    // #ifdef SIGVTALRM
     sigaddset(&new_set, SIGVTALRM);
-// #endif
-// #ifdef SIGXCPU
+    // #endif
+    // #ifdef SIGXCPU
     sigaddset(&new_set, SIGXCPU);
-// #endif
-// #ifdef SIGXFSZ
+    // #endif
+    // #ifdef SIGXFSZ
     sigaddset(&new_set, SIGXFSZ);
-// #endif
+    // #endif
     r = pthread_sigmask(SIG_BLOCK, &new_set, 0);
     if (r != 0) {
         gr_log_error(_logger, "mask signals");
@@ -84,7 +84,7 @@ thread_wrapper::thread_wrapper(const std::string& name,
     sched_to_notify_downstream.reserve(20);
 
     d_fgmon = fgmon;
-    _exec = std::make_unique<graph_executor>(name);
+    _exec = std::make_unique<graph_executor>(name, &_si);
     _exec->initialize(bufman, d_blocks);
     d_thread = std::thread(thread_body, this);
 }
@@ -170,6 +170,8 @@ void thread_wrapper::notify_upstream(neighbor_interface_sptr upstream_sched,
 {
     gr_log_debug(_debug_logger, "notify_upstream");
 
+    INTROSPECT_INCREMENT(_si, num_notify_upstream);
+
     upstream_sched->push_message(
         std::make_shared<scheduler_action>(scheduler_action_t::NOTIFY_OUTPUT, blkid));
     // upstream_sched->push_message(canned_notify_output);
@@ -183,6 +185,8 @@ void thread_wrapper::notify_upstream(neighbor_interface_sptr upstream_sched,
 void thread_wrapper::notify_downstream(neighbor_interface_sptr downstream_sched,
                                        nodeid_t blkid)
 {
+    INTROSPECT_INCREMENT(_si, num_notify_downstream);
+
     gr_log_debug(_debug_logger, "notify_downstream");
     downstream_sched->push_message(
         std::make_shared<scheduler_action>(scheduler_action_t::NOTIFY_INPUT, blkid));
@@ -225,7 +229,9 @@ void thread_wrapper::handle_parameter_change(std::shared_ptr<param_change_action
 
 void thread_wrapper::handle_work_notification()
 {
+    INTROSPECT_INCREMENT(_si, num_work_notification);
     //  CALLGRIND_TOGGLE_COLLECT;
+    _flags = 0;
     auto s = _exec->run_one_iteration(d_blocks);
     // std::string dbg_work_done;
     // for (auto elem : s) {
@@ -236,7 +242,7 @@ void thread_wrapper::handle_work_notification()
 
     // Based on state of the run_one_iteration, do things
     // If any of the blocks are done, notify the flowgraph monitor
-    for (auto elem : s) {
+    for (auto& elem : s) {
         if (elem.second == executor_iteration_status::DONE) {
             gr_log_debug(
                 _debug_logger, "Signalling DONE to FGM from block {}", elem.first);
@@ -251,7 +257,7 @@ void thread_wrapper::handle_work_notification()
     sched_to_notify_upstream.clear();
     sched_to_notify_downstream.clear();
 
-    for (auto elem : s) {
+    for (auto& elem : s) {
 
         if (elem.second == executor_iteration_status::READY) {
             // top->notify_neighbors(elem.first);
@@ -260,12 +266,24 @@ void thread_wrapper::handle_work_notification()
             auto has_ds = get_neighbors_downstream(elem.first, info_ds);
 
             if (has_us) {
+                info_us.upstream_neighbor_blkid = elem.first;
                 sched_to_notify_upstream.push_back(info_us);
+                 _flags |= flag_blkd_in;
             }
             if (has_ds) {
+                for (int i=0; i<info_ds.downstream_neighbor_blkids.size(); i++)
+                {
+                    info_ds.downstream_neighbor_blkids[i] = elem.first;
+                }
+                
                 sched_to_notify_downstream.push_back(info_ds);
+                _flags |= flag_blkd_out;
             }
             notify_self_ = true;
+        } else if (elem.second == executor_iteration_status::BLKD_IN) {
+            _flags |= flag_blkd_in;
+        } else if (elem.second == executor_iteration_status::BLKD_OUT) {
+            _flags |= flag_blkd_out;
         }
     }
 
@@ -340,22 +358,48 @@ void thread_wrapper::thread_body(thread_wrapper* top)
                     // each scheduler could handle this in a different way
                     top->d_thread_stopped = true;
 
-                    gr_log_info(top->_logger, "Block {} work called {}", top->name(), top->_exec->pc_n_times_work_called);
+                    gr_log_info(top->_logger,
+                                "Block {} work called {}",
+                                top->name(),
+                                top->_exec->pc_n_times_work_called);
+                    top->_si.print(top->_logger);
+                    gr_log_info(top->_logger, "msgq: {}", top->msgq.size());
 
                     break;
                 case scheduler_action_t::NOTIFY_OUTPUT:
+                    top->_flags &= ~flag_blkd_out;
                     gr_log_debug(
                         top->_debug_logger, "got NOTIFY_OUTPUT from {}", msg->blkid());
-                    top->handle_work_notification();
+
+                    if (!(top->_flags & flag_blkd_in)) {
+                        INTROSPECT_INCREMENT(top->_si, num_notify_output);
+                        top->handle_work_notification();
+                    }
+                    else{
+                    gr_log_debug(
+                        top->_debug_logger, "Still blocked on the input");
+ 
+                    }
                     break;
                 case scheduler_action_t::NOTIFY_INPUT:
+                    top->_flags &= ~flag_blkd_in;
                     gr_log_debug(
                         top->_debug_logger, "got NOTIFY_INPUT from {}", msg->blkid());
-                    top->handle_work_notification();
+                    if (!(top->_flags & flag_blkd_out)) {
+                        INTROSPECT_INCREMENT(top->_si, num_notify_input);
+                        top->handle_work_notification();
+                    }
+                    else{
+                    gr_log_debug(
+                        top->_debug_logger, "Still blocked on the output");
+ 
+                    }
                     break;
                 case scheduler_action_t::NOTIFY_ALL: {
+                    top->_flags = 0x00;
                     gr_log_debug(
                         top->_debug_logger, "got NOTIFY_ALL from {}", msg->blkid());
+                    INTROSPECT_INCREMENT(top->_si, num_notify_all);
                     top->handle_work_notification();
                     break;
                 }

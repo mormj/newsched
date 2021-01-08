@@ -5,6 +5,7 @@
 #include <gnuradio/flowgraph_monitor.hpp>
 #include <gnuradio/neighbor_interface.hpp>
 #include <gnuradio/scheduler_message.hpp>
+#include <gnuradio/scheduler_introspection.hpp>
 #include <thread>
 
 namespace gr {
@@ -16,7 +17,7 @@ private:
      * @brief Single message queue for all types of messages to this thread
      *
      */
-    concurrent_queue<scheduler_message_sptr> msgq;
+    
     std::thread d_thread;
     bool d_thread_stopped = false;
     
@@ -36,7 +37,9 @@ private:
     scheduler_action_sptr canned_notify_input;
     scheduler_action_sptr canned_notify_output;
 
-    
+    static const uint8_t flag_blkd_in = 0x01;
+    static const uint8_t flag_blkd_out = 0x02;
+    uint8_t _flags = 0x00;
 
     // std::map<nodeid_t, scheduler_action_sptr> canned_notify_input;
     // std::map<nodeid_t, scheduler_action_sptr> canned_notify_output;
@@ -45,7 +48,9 @@ private:
         sched_to_notify_downstream;
 
 public:
+    concurrent_queue<scheduler_message_sptr> msgq;
     void mask_signals();
+    scheduler_introspection _si;
     
     std::unique_ptr<graph_executor> _exec;
 

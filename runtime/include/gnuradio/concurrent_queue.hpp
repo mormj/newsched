@@ -24,13 +24,19 @@ public:
         std::unique_lock<std::mutex> l(_mutex);
         _queue.push_back(msg);
         l.unlock();
-        _cond.notify_one();
+        _cond.notify_all();
 
         return true;
     }
     bool pop(T& msg)
     {
         std::unique_lock<std::mutex> l(_mutex);
+        if (_queue.size() > 0)
+        {
+            msg = _queue.front();
+            _queue.pop_front();
+            return true;
+        }
         _cond.wait(l,
                    [this] { return !_queue.empty(); }); // TODO - replace with a waitfor
         // if (_cond.wait_for(l, 250ms, [this] { return !_queue.empty(); })) {
@@ -47,6 +53,12 @@ public:
         _queue.clear();
         // l.unlock();
         // _cond.notify_all();
+    }
+
+    size_t size()
+    {
+        std::unique_lock<std::mutex> l(_mutex);
+        return _queue.size();
     }
 
 private:

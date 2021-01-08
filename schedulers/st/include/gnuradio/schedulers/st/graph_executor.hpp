@@ -1,8 +1,9 @@
 #pragma once
 
-#include <gnuradio/executor.hpp>
-#include <gnuradio/buffer.hpp>
 #include <gnuradio/block.hpp>
+#include <gnuradio/buffer.hpp>
+#include <gnuradio/executor.hpp>
+#include <gnuradio/scheduler_introspection.hpp>
 
 #include "buffer_management.hpp"
 
@@ -15,6 +16,7 @@ class graph_executor : public executor
 {
 private:
     std::vector<block_sptr> d_blocks;
+    scheduler_introspection* _si;
 
     // Move to buffer management
     const int s_fixed_buf_size;
@@ -25,10 +27,8 @@ private:
     buffer_manager::sptr _bufman;
 
 public:
-    graph_executor(const std::string& name) : executor(name),
-      s_fixed_buf_size(32768),
-      s_max_buf_items(32768 - 1) {}
-    ;
+    graph_executor(const std::string& name, scheduler_introspection* si = nullptr)
+        : executor(name), _si(si), s_fixed_buf_size(32768), s_max_buf_items(32768 - 1){};
     ~graph_executor(){};
 
     void initialize(buffer_manager::sptr bufman, std::vector<block_sptr> blocks)
@@ -43,5 +43,5 @@ public:
     int64_t pc_n_times_work_called = 0;
 };
 
-} // namespace gr
+} // namespace schedulers
 } // namespace gr

@@ -21,7 +21,7 @@ graph_executor::run_one_iteration(std::vector<block_sptr> blocks)
 
         // for each input port of the block
         bool ready = true;
-        for (auto p : b->input_stream_ports()) {
+        for (auto& p : b->input_stream_ports()) {
             auto p_buf = _bufman->get_input_buffer(p);
 
             buffer_info_t read_info;
@@ -43,12 +43,13 @@ graph_executor::run_one_iteration(std::vector<block_sptr> blocks)
         }
 
         if (!ready) {
+            INTROSPECT_INCREMENT((*_si), num_in_not_ready);
             per_block_status[b->id()] = executor_iteration_status::BLKD_IN;
             continue;
         }
 
         // for each output port of the block
-        for (auto p : b->output_stream_ports()) {
+        for (auto& p : b->output_stream_ports()) {
 
             // When a block has multiple output buffers, it adds the restriction
             // that the work call can only produce the minimum available across
@@ -58,7 +59,7 @@ graph_executor::run_one_iteration(std::vector<block_sptr> blocks)
 
             void* write_ptr = nullptr;
             uint64_t nitems_written;
-            for (auto p_buf : _bufman->get_output_buffers(p)) {
+            for (auto& p_buf : _bufman->get_output_buffers(p)) {
                 buffer_info_t write_info;
                 ready = p_buf->write_info(write_info);
                 gr_log_debug(_debug_logger,
@@ -128,6 +129,7 @@ graph_executor::run_one_iteration(std::vector<block_sptr> blocks)
         }
 
         if (!ready) {
+            INTROSPECT_INCREMENT((*_si), num_out_not_ready);
             per_block_status[b->id()] = executor_iteration_status::BLKD_OUT;
             continue;
         }
@@ -145,19 +147,22 @@ graph_executor::run_one_iteration(std::vector<block_sptr> blocks)
                     gr_log_debug(_debug_logger, "do_work for {}", b->alias());
                 }
 
-
+                INTROSPECT_INCREMENT((*_si), num_work_called);
                 ret = b->do_work(work_input, work_output);
                 gr_log_debug(_debug_logger, "do_work returned {}", ret);
                 pc_n_times_work_called++;
                 // ret = work_return_code_t::WORK_OK;
 
                 if (ret == work_return_code_t::WORK_DONE) {
+                    INTROSPECT_INCREMENT((*_si), num_work_done);
                     per_block_status[b->id()] = executor_iteration_status::DONE;
                     break;
                 } else if (ret == work_return_code_t::WORK_OK) {
+                    INTROSPECT_INCREMENT((*_si), num_work_ok);
                     per_block_status[b->id()] = executor_iteration_status::READY;
                     break;
                 } else if (ret == work_return_code_t::WORK_INSUFFICIENT_INPUT_ITEMS) {
+                    INTROSPECT_INCREMENT((*_si), num_work_insufficient_input);
                     work_output[0].n_items >>= 1;
                     if (work_output[0].n_items < 4) // min block size
                     {
@@ -172,15 +177,15 @@ graph_executor::run_one_iteration(std::vector<block_sptr> blocks)
 
 
                 int input_port_index = 0;
-                for (auto p : b->input_stream_ports()) {
+                for (auto& p : b->input_stream_ports()) {
                     auto p_buf = _bufman->get_input_buffer(p);
 
                     // Pass the tags according to TPP
                     if (b->tag_propagation_policy() ==
                         tag_propagation_policy_t::TPP_ALL_TO_ALL) {
                         int output_port_index = 0;
-                        for (auto op : b->output_stream_ports()) {
-                            for (auto p_out_buf : _bufman->get_output_buffers(op)) {
+                        for (auto& op : b->output_stream_ports()) {
+                            for (auto& p_out_buf : _bufman->get_output_buffers(op)) {
                                 p_out_buf->add_tags(
                                     work_output[output_port_index].n_produced,
                                     work_input[input_port_index].tags);
@@ -190,9 +195,9 @@ graph_executor::run_one_iteration(std::vector<block_sptr> blocks)
                     } else if (b->tag_propagation_policy() ==
                                tag_propagation_policy_t::TPP_ONE_TO_ONE) {
                         int output_port_index = 0;
-                        for (auto op : b->output_stream_ports()) {
+                        for (auto& op : b->output_stream_ports()) {
                             if (output_port_index == input_port_index) {
-                                for (auto p_out_buf : _bufman->get_output_buffers(op)) {
+                                for (auto& p_out_buf : _bufman->get_output_buffers(op)) {
                                     p_out_buf->add_tags(
                                         work_output[output_port_index].n_produced,
                                         work_input[input_port_index].tags);
@@ -213,9 +218,9 @@ graph_executor::run_one_iteration(std::vector<block_sptr> blocks)
                 }
 
                 int output_port_index = 0;
-                for (auto p : b->output_stream_ports()) {
+                for (auto& p : b->output_stream_ports()) {
                     int j = 0;
-                    for (auto p_buf : _bufman->get_output_buffers(p)) {
+                    for (auto& p_buf : _bufman->get_output_buffers(p)) {
                         if (j > 0) {
                             gr_log_debug(_debug_logger,
                                          "copy_items {} - {}",
@@ -227,7 +232,7 @@ graph_executor::run_one_iteration(std::vector<block_sptr> blocks)
                         }
                         j++;
                     }
-                    for (auto p_buf : _bufman->get_output_buffers(p)) {
+                    for (auto& p_buf : _bufman->get_output_buffers(p)) {
                         // Add the tags that were collected in the work() call
                         if (!work_output[output_port_index].tags.empty()) {
                             p_buf->add_tags(work_output[output_port_index].n_produced,

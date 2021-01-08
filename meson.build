@@ -6,6 +6,8 @@ project('newsched', 'cpp',
   license : 'GPLv3',
   default_options : ['cpp_std=c++17'])
 
+add_project_arguments('-fomit-frame-pointer',language : 'cpp')
+
 cuda_available = add_languages('cuda',required : false)
 
 boost_dep = dependency('boost', modules : ['program_options'], version : '>=1.65')
