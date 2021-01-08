@@ -266,15 +266,15 @@ void thread_wrapper::handle_work_notification()
             auto has_ds = get_neighbors_downstream(elem.first, info_ds);
 
             if (has_us) {
-                info_us.upstream_neighbor_blkid = elem.first;
+                // info_us.upstream_neighbor_blkid = elem.first;
                 sched_to_notify_upstream.push_back(info_us);
                  _flags |= flag_blkd_in;
             }
             if (has_ds) {
-                for (int i=0; i<info_ds.downstream_neighbor_blkids.size(); i++)
-                {
-                    info_ds.downstream_neighbor_blkids[i] = elem.first;
-                }
+                // for (int i=0; i<info_ds.downstream_neighbor_blkids.size(); i++)
+                // {
+                //     info_ds.downstream_neighbor_blkids[i] = elem.first;
+                // }
                 
                 sched_to_notify_downstream.push_back(info_ds);
                 _flags |= flag_blkd_out;
@@ -287,10 +287,10 @@ void thread_wrapper::handle_work_notification()
         }
     }
 
-    // if (notify_self_) {
-    //     gr_log_debug(_debug_logger, "notifying self");
-    //     notify_self();
-    // }
+    if (notify_self_) {
+        gr_log_debug(_debug_logger, "notifying self");
+        notify_self();
+    }
 
     if (!sched_to_notify_upstream.empty()) {
         // Reduce to the unique schedulers to notify
@@ -423,8 +423,8 @@ void thread_wrapper::thread_body(thread_wrapper* top)
                 break;
             }
         } else {
-
-            gr_log_debug(top->_debug_logger, "No message, do work anyway", msg->blkid());
+            std::this_thread::yield();
+            gr_log_debug(top->_debug_logger, "No message, do work anyway");
             top->handle_work_notification();
         }
     }

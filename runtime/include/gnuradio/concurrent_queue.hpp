@@ -31,21 +31,32 @@ public:
     bool pop(T& msg)
     {
         std::unique_lock<std::mutex> l(_mutex);
+
+        if (_num_pop < 5)
+        {
+        _cond.wait(l,
+                   [this] { return !_queue.empty(); }); // TODO - replace with a waitfor
+        // if (_cond.wait_for(l, 250ms, [this] { return !_queue.empty(); })) {
+            msg = _queue.front();
+            _queue.pop_front();
+            _num_pop++;
+            return true;
+        // } else {
+        //     return false;
+        // }
+            // _num_pop++;
+        }
+
         if (_queue.size() > 0)
         {
             msg = _queue.front();
             _queue.pop_front();
             return true;
         }
-        _cond.wait(l,
-                   [this] { return !_queue.empty(); }); // TODO - replace with a waitfor
-        // if (_cond.wait_for(l, 250ms, [this] { return !_queue.empty(); })) {
-            msg = _queue.front();
-            _queue.pop_front();
-            return true;
-        // } else {
-        //     return false;
-        // }
+        else{
+            return false;
+        }
+
     }
     void clear()
     {
@@ -66,6 +77,8 @@ private:
     std::mutex _mutex;
     std::condition_variable _cond;
     std::atomic<bool> _ready;
+
+    int _num_pop = 0;
 };
 
 #else
