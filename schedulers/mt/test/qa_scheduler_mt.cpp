@@ -16,6 +16,7 @@
 
 using namespace gr;
 
+#if 0
 TEST(SchedulerMTTest, TwoSinks)
 {
     std::vector<float> input_data{ 1.0, 2.0, 3.0, 4.0, 5.0 };
@@ -39,6 +40,7 @@ TEST(SchedulerMTTest, TwoSinks)
     EXPECT_EQ(snk1->data(), input_data);
     EXPECT_EQ(snk2->data(), input_data);
 }
+#endif
 
 TEST(SchedulerMTTest, DomainAdapterBasic)
 {

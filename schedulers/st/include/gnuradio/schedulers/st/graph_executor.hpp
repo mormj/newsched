@@ -39,6 +39,8 @@ public:
 
     std::map<nodeid_t, executor_iteration_status>
     run_one_iteration(std::vector<block_sptr> blocks = std::vector<block_sptr>());
+
+    int64_t pc_n_times_work_called = 0;
 };
 
 } // namespace gr

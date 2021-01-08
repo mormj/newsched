@@ -148,6 +148,7 @@ graph_executor::run_one_iteration(std::vector<block_sptr> blocks)
 
                 ret = b->do_work(work_input, work_output);
                 gr_log_debug(_debug_logger, "do_work returned {}", ret);
+                pc_n_times_work_called++;
                 // ret = work_return_code_t::WORK_OK;
 
                 if (ret == work_return_code_t::WORK_DONE) {

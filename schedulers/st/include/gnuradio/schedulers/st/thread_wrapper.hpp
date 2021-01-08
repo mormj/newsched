@@ -19,8 +19,7 @@ private:
     concurrent_queue<scheduler_message_sptr> msgq;
     std::thread d_thread;
     bool d_thread_stopped = false;
-    std::unique_ptr<graph_executor> _exec;
-
+    
     std::vector<block_sptr> d_blocks;
 
     logger_sptr _logger;
@@ -33,7 +32,23 @@ private:
     std::string _name;
     int _id;
 
+    scheduler_action_sptr canned_notify_all;
+    scheduler_action_sptr canned_notify_input;
+    scheduler_action_sptr canned_notify_output;
+
+    
+
+    // std::map<nodeid_t, scheduler_action_sptr> canned_notify_input;
+    // std::map<nodeid_t, scheduler_action_sptr> canned_notify_output;
+
+    std::vector<neighbor_interface_info> sched_to_notify_upstream,
+        sched_to_notify_downstream;
+
 public:
+    void mask_signals();
+    
+    std::unique_ptr<graph_executor> _exec;
+
     typedef std::unique_ptr<thread_wrapper> ptr;
 
     static ptr make(const std::string& name,
