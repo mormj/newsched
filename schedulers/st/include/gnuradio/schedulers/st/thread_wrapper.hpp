@@ -1,7 +1,8 @@
 
 #include "graph_executor.hpp"
 #include <gnuradio/block.hpp>
-#include <gnuradio/concurrent_queue.hpp>
+// #include <gnuradio/concurrent_queue.hpp>
+#include <concurrentqueue.h>
 #include <gnuradio/flowgraph_monitor.hpp>
 #include <gnuradio/neighbor_interface.hpp>
 #include <gnuradio/scheduler_message.hpp>
@@ -16,7 +17,8 @@ private:
      * @brief Single message queue for all types of messages to this thread
      *
      */
-    concurrent_queue<scheduler_message_sptr> msgq;
+    //concurrent_queue<scheduler_message_sptr> msgq;
+    moodycamel::ConcurrentQueue<scheduler_message_sptr> msgq;
     std::thread d_thread;
     bool d_thread_stopped = false;
     std::unique_ptr<graph_executor> _exec;
@@ -66,9 +68,16 @@ public:
     const std::string& name() { return _name; }
     void set_name(int name) { _name = name; }
 
-    void push_message(scheduler_message_sptr msg) { msgq.push(msg); }
+    void push_message(scheduler_message_sptr msg) { 
+        // msgq.push(msg); 
+        msgq.enqueue(msg);
+        }
 
-    bool pop_message(scheduler_message_sptr& msg) { return msgq.pop(msg); }
+    bool pop_message(scheduler_message_sptr& msg) 
+    { 
+        // return msgq.pop(msg); 
+        return(msgq.try_dequeue(msg));
+        }
 
     void start();
     void stop();

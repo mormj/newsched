@@ -1,7 +1,6 @@
 #include "thread_wrapper.hpp"
 
 #include <gnuradio/thread.hpp>
-#include <gnuradio/concurrent_queue.hpp>
 #include <gnuradio/flowgraph_monitor.hpp>
 #include <gnuradio/scheduler_message.hpp>
 #include <thread>
@@ -333,8 +332,8 @@ void thread_wrapper::thread_body(thread_wrapper* top)
             }
         } else {
             std::this_thread::yield();
-            gr_log_debug(top->_debug_logger, "No message, do work anyway");
-            top->handle_work_notification();
+            // gr_log_debug(top->_debug_logger, "No message, do work anyway");
+            // top->handle_work_notification();
         }
     }
 }

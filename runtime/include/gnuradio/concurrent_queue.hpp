@@ -20,7 +20,7 @@ public:
         std::unique_lock<std::mutex> l(_mutex);
         _queue.push_back(msg);
         l.unlock();
-        _cond.notify_all();
+        _cond.notify_one();
 
         return true;
     }
@@ -28,22 +28,22 @@ public:
     {
         std::unique_lock<std::mutex> l(_mutex);
 
-        if (_num_pop < 5) { // use the condition variable at the beginning
-            _cond.wait(
-                l, [this] { return !_queue.empty(); }); // TODO - replace with a waitfor
-            msg = _queue.front();
-            _queue.pop_front();
-            _num_pop++;
-            return true;
-        }
+        // if (_num_pop < 5) { // use the condition variable at the beginning
+        _cond.wait(l,
+                   [this] { return !_queue.empty(); }); // TODO - replace with a waitfor
+        msg = _queue.front();
+        _queue.pop_front();
+        _num_pop++;
+        return true;
+        // }
 
-        if (_queue.size() > 0) {
-            msg = _queue.front();
-            _queue.pop_front();
-            return true;
-        } else {
-            return false;
-        }
+        // if (_queue.size() > 0) {
+        //     msg = _queue.front();
+        //     _queue.pop_front();
+        //     return true;
+        // } else {
+        //     return false;
+        // }
     }
     void clear()
     {

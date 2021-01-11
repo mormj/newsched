@@ -3,7 +3,8 @@
 // #include <boost/circular_buffer.hpp>
 #include "graph_executor.hpp"
 #include "thread_wrapper.hpp"
-#include <gnuradio/concurrent_queue.hpp>
+// #include <gnuradio/concurrent_queue.hpp>
+#include <concurrentqueue.h>
 #include <gnuradio/domain_adapter.hpp>
 #include <gnuradio/scheduler_message.hpp>
 #include <gnuradio/simplebuffer.hpp>
