@@ -156,7 +156,7 @@ public:
     {
         std::scoped_lock guard(_buf_mutex);
 
-        for (auto tag : tags) {
+        for (auto& tag : tags) {
             if (tag.offset < _total_written ||
                 tag.offset >= _total_written + _num_items) {
 

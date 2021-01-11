@@ -3,6 +3,7 @@
 #include <gnuradio/block.hpp>
 // #include <gnuradio/concurrent_queue.hpp>
 #include <concurrentqueue.h>
+#include <blockingconcurrentqueue.h>
 #include <gnuradio/flowgraph_monitor.hpp>
 #include <gnuradio/neighbor_interface.hpp>
 #include <gnuradio/scheduler_message.hpp>
@@ -19,6 +20,7 @@ private:
      */
     //concurrent_queue<scheduler_message_sptr> msgq;
     moodycamel::ConcurrentQueue<scheduler_message_sptr> msgq;
+    // moodycamel::BlockingConcurrentQueue<scheduler_message_sptr> msgq;
     std::thread d_thread;
     bool d_thread_stopped = false;
     std::unique_ptr<graph_executor> _exec;

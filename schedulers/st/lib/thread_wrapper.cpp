@@ -282,27 +282,27 @@ void thread_wrapper::thread_body(thread_wrapper* top)
                     gr_log_debug(
                         top->_debug_logger, "got NOTIFY_OUTPUT from {}", msg->blkid());
 
-                    if (!(top->_flags & flag_blkd_in)) {
+                    // if (!(top->_flags & flag_blkd_in)) {
                         top->handle_work_notification();
-                    }
-                    else{
-                    gr_log_debug(
-                        top->_debug_logger, "Still blocked on the input");
+                    // }
+                    // else{
+                    // gr_log_debug(
+                        // top->_debug_logger, "Still blocked on the input");
  
-                    }
+                    // }
                     break;
                 case scheduler_action_t::NOTIFY_INPUT:
                     top->_flags &= ~flag_blkd_in;
                     gr_log_debug(
                         top->_debug_logger, "got NOTIFY_INPUT from {}", msg->blkid());
-                    if (!(top->_flags & flag_blkd_out)) {
+                    // if (!(top->_flags & flag_blkd_out)) {
                         top->handle_work_notification();
-                    }
-                    else{
-                    gr_log_debug(
-                        top->_debug_logger, "Still blocked on the output");
+                    // }
+                    // else{
+                    // gr_log_debug(
+                        // top->_debug_logger, "Still blocked on the output");
  
-                    }
+                    // }
                     break;
                 case scheduler_action_t::NOTIFY_ALL: {
                     top->_flags = 0x00;
