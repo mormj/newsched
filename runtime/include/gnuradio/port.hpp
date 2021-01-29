@@ -4,6 +4,8 @@
 #include <string>
 #include <typeindex>
 #include <typeinfo>
+#include <gnuradio/neighbor_interface.hpp>
+#include <utility>
 
 namespace gr {
 
@@ -164,9 +166,55 @@ public:
                  const port_direction_t direction,
                  const size_t itemsize,
                  const int multiplicity = 1)
-        : port_base(name, direction, itemsize,  port_type_t::STREAM, multiplicity)
+        : port_base(name, direction, itemsize, port_type_t::STREAM, multiplicity)
     {
     }
 };
+
+
+typedef std::function<void(const std::string&)> message_port_callback_fcn;
+/**
+ * @brief Message port class
+ *
+ * Wraps the port_base class to provide a message port where streaming parameters are
+ * absent and the type is MESSAGE
+ *
+ */
+class message_port : public port_base
+{
+private:                 // 
+    std::vector<std::pair<std::string, neighbor_interface_sptr>> _connected_interfaces;
+    message_port_callback_fcn _callback_fcn;
+    
+public:
+    typedef std::shared_ptr<message_port> sptr;
+    static sptr make(const std::string& name,
+                                              const port_direction_t direction,
+                                              const int multiplicity = 1)
+    {
+        return std::make_shared<message_port>(name, direction, multiplicity);
+    }
+    message_port(const std::string& name,
+                 const port_direction_t direction,
+                 const int multiplicity = 1)
+        : port_base(name, direction, 0, port_type_t::MESSAGE, multiplicity)
+    {
+    }
+
+    void register_callback(message_port_callback_fcn fcn) {_callback_fcn = fcn; }
+    void post(const std::string& msg) // should be a pmt, just pass strings for now
+    {
+        for (auto& intf : _connected_interfaces)
+        {
+            // intf->push_message;
+        }
+    }
+    void add_interface(const std::string port_name, neighbor_interface_sptr intf)
+    {
+        _connected_interfaces.push_back(std::make_pair<std::string,neighbor_interface_sptr>(port_name, intf));
+    }
+
+};
+typedef message_port::sptr message_port_sptr;
 
 } // namespace gr

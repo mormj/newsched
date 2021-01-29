@@ -4,7 +4,7 @@
 #include <gnuradio/block.hpp>
 #include <gnuradio/concurrent_queue.hpp>
 #include <gnuradio/flowgraph_monitor.hpp>
-#include <gnuradio/neighbor_interface.hpp>
+#include <gnuradio/neighbor_interface_info.hpp>
 #include <gnuradio/scheduler_message.hpp>
 #include <thread>
 

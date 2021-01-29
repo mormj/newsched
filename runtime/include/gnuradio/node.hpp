@@ -118,11 +118,10 @@ public:
 
     void set_id(uint32_t id) { d_id = id; }
 
-    port_sptr get_port(std::string& name, port_type_t type, port_direction_t direction)
+    port_sptr get_port(const std::string& name)
     {
-        auto pred = [name, type, direction](port_sptr p) {
-            return (p->type() == type && p->direction() == direction &&
-                    p->name() == name);
+        auto pred = [name](port_sptr p) {
+            return (p->name() == name);
         };
         std::vector<port_sptr>::iterator it =
             std::find_if(std::begin(d_all_ports), std::end(d_all_ports), pred);
