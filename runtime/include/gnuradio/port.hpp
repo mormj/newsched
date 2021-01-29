@@ -120,16 +120,13 @@ public:
     static std::shared_ptr<port<T>>
     make(const std::string& name,
          const port_direction_t direction,
-         const port_type_t port_type = port_type_t::STREAM,
          const std::vector<size_t>& dims = std::vector<size_t>(),
          const int multiplicity = 1)
     {
-        return std::shared_ptr<port<T>>(
-            new port<T>(name, direction, port_type, dims, multiplicity));
+        return std::shared_ptr<port<T>>(new port<T>(name, direction, dims, multiplicity));
     }
     port(const std::string& name,
          const port_direction_t direction,
-         const port_type_t port_type = port_type_t::STREAM,
          const std::vector<size_t>& dims = std::vector<size_t>(),
          const int multiplicity = 1)
         : port_base(name,
@@ -137,7 +134,7 @@ public:
                     direction,
                     parameter_functions::get_param_type_from_typeinfo(
                         std::type_index(typeid(T))),
-                    port_type,
+                    port_type_t::STREAM,
                     dims,
                     multiplicity)
     {
@@ -155,22 +152,19 @@ public:
 class untyped_port : public port_base
 {
 public:
-    static std::shared_ptr<untyped_port>
-    make(const std::string& name,
-         const port_direction_t direction,
-         const size_t itemsize,
-         const port_type_t port_type = port_type_t::STREAM,
-         const int multiplicity = 1)
+    static std::shared_ptr<untyped_port> make(const std::string& name,
+                                              const port_direction_t direction,
+                                              const size_t itemsize,
+                                              const int multiplicity = 1)
     {
         return std::shared_ptr<untyped_port>(
-            new untyped_port(name, direction, itemsize, port_type, multiplicity));
+            new untyped_port(name, direction, itemsize, multiplicity));
     }
     untyped_port(const std::string& name,
                  const port_direction_t direction,
                  const size_t itemsize,
-                 const port_type_t port_type = port_type_t::STREAM,
                  const int multiplicity = 1)
-        : port_base(name, direction, itemsize, port_type, multiplicity)
+        : port_base(name, direction, itemsize,  port_type_t::STREAM, multiplicity)
     {
     }
 };
