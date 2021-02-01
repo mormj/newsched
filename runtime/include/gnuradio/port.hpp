@@ -23,7 +23,7 @@ enum class port_direction_t {
  * Holds the necessary information to describe the port to the runtime
  *
  */
-class port_base
+class port_base : std::enable_shared_from_this<port_base>
 {
 
 public:
@@ -78,6 +78,8 @@ public:
     {
     }
 
+    virtual ~port_base() = default;
+
     std::string name() { return _name; }
     std::string alias() { return _alias; }
     void set_alias(const std::string& alias) { _alias = alias; }
@@ -89,6 +91,7 @@ public:
     size_t data_size() { return _datasize; }
     size_t itemsize() { return _itemsize; }
     std::vector<size_t> dims() { return _dims; }
+    sptr base() {return shared_from_this(); }
 
     void set_parent_intf(neighbor_interface_sptr intf) { _parent_intf = intf; }
 
@@ -99,7 +102,7 @@ public:
         }
     }
     // Inbound messages
-    void push_message(scheduler_message_sptr msg)
+    virtual void push_message(scheduler_message_sptr msg)
     {
         // push it to the queue of the owning thread
         if (_parent_intf) {
@@ -198,7 +201,7 @@ public:
 };
 
 
-typedef std::function<void(const std::string&)> message_port_callback_fcn;
+
 /**
  * @brief Message port class
  *
@@ -209,7 +212,6 @@ typedef std::function<void(const std::string&)> message_port_callback_fcn;
 class message_port : public port_base
 {
 private: //
-    std::vector<std::pair<std::string, neighbor_interface_sptr>> _connected_interfaces;
     message_port_callback_fcn _callback_fcn;
 
 public:
@@ -226,20 +228,26 @@ public:
         : port_base(name, direction, 0, port_type_t::MESSAGE, multiplicity)
     {
     }
+        
 
+    message_port_callback_fcn callback() { return _callback_fcn; }
     void register_callback(message_port_callback_fcn fcn) { _callback_fcn = fcn; }
     void post(const std::string& msg) // should be a pmt, just pass strings for now
     {
-        for (auto intf : _connected_interfaces) {
-            // intf.get(1)->push_message(std::make_shared<msgport_message>(msg, -1));
-        }
+        notify_connected_ports(std::make_shared<msgport_message>(msg, _callback_fcn));
     }
-    void add_interface(const std::string& port_name, neighbor_interface_sptr intf)
+
+    virtual void push_message(scheduler_message_sptr msg)
     {
-        auto pair = std::pair<std::string, neighbor_interface_sptr>(port_name, intf);
-        // _connected_interfaces.push_back(std::make_pair<std::string,neighbor_interface_sptr>(port_name,
-        // intf));
-        _connected_interfaces.push_back(pair);
+        auto m = std::static_pointer_cast<msgport_message>(msg);
+        m->set_callback(callback());
+
+        // push it to the queue of the owning thread
+        if (_parent_intf) {
+            _parent_intf->push_message(msg);
+        } else {
+            throw std::runtime_error("port has no parent interface");
+        }
     }
 };
 typedef message_port::sptr message_port_sptr;

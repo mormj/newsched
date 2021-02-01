@@ -252,6 +252,14 @@ void thread_wrapper::thread_body(thread_wrapper* top)
                     }
                     break;
                 }
+                case scheduler_message_t::MSGPORT_MESSAGE:
+                {
+                
+                    auto m = std::static_pointer_cast<msgport_message>(msg);
+                    m->callback()(m->message());
+
+                    break;
+                }
                 default:
                     break;
                 }

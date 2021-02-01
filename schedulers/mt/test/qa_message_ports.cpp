@@ -19,16 +19,16 @@ TEST(SchedulerMTMessagePassing, Forward)
     auto blk3 = blocks::msg_forward::make();
 
     flowgraph_sptr fg(new flowgraph());
-    fg->connect(blk1, 0, blk2, 0);
-    fg->connect(blk2, 0, blk3, 0);
+    fg->connect(blk1, "out", blk2, "in");
+    fg->connect(blk2, "out", blk3, "in");
 
     std::shared_ptr<schedulers::scheduler_mt> sched(new schedulers::scheduler_mt());
     fg->set_scheduler(sched);
 
     fg->validate();
 
-    auto src_port = blk1->get_port("input");
-
+    auto src_port = blk1->get_message_port("out");
+    src_port->post("message");
 
     fg->start();
     fg->wait();

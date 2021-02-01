@@ -18,7 +18,7 @@ public:
         : block("msg_forward")
     {
         _in_port = message_port::make(
-            "input", port_direction_t::INPUT);
+            "in", port_direction_t::INPUT);
         _in_port->register_callback([this](const std::string& msg) { this->handle_msg(msg); });
         add_port(_in_port);
 
@@ -34,7 +34,8 @@ private:
 
     void handle_msg(const std::string& msg)
     {
-        _out_port->post(msg);
+        gr_log_info(_logger, "got message: {}", msg);
+        // _out_port->post(msg);
     }
 
 };

@@ -61,19 +61,19 @@ public:
         return unique_vector<block_sptr>(tmp);
     }
 
-    // includes domain adapters
-    node_vector_t calc_used_nodes()
-    {
-        node_vector_t tmp;
+    // // includes domain adapters
+    // node_vector_t calc_used_nodes()
+    // {
+    //     node_vector_t tmp;
 
-        // Collect all blocks in the edge list
-        for (auto& p : edges()) {
-                tmp.push_back(p->src().node());
-                tmp.push_back(p->dst().node());
-        }
+    //     // Collect all blocks in the edge list
+    //     for (auto& p : edges()) {
+    //             tmp.push_back(p->src().node());
+    //             tmp.push_back(p->dst().node());
+    //     }
 
-        return unique_vector<node_sptr>(tmp);
-    }
+    //     return unique_vector<node_sptr>(tmp);
+    // }
 
     static std::shared_ptr<flat_graph> make_flat(graph_sptr g)
     {
@@ -83,6 +83,10 @@ public:
         for (auto e : g->edges()) {
             fg->connect(e->src(), e->dst())
                 ->set_custom_buffer(e->buffer_factory(), e->buf_properties());
+        }
+        for (auto o : g->orphan_nodes())
+        {
+            fg->add_orphan_node(o);
         }
 
         return fg;

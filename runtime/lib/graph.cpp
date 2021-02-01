@@ -56,6 +56,26 @@ edge_sptr graph::connect(node_sptr src_node,
             node_endpoint(dst_node, dst_port));
 }
 
+edge_sptr graph::connect(node_sptr src_node,
+                    const std::string& src_port_name,
+                    node_sptr dst_node,
+                    const std::string& dst_port_name)
+{
+    port_sptr src_port =
+        src_node->get_port(src_port_name);
+    if (src_port == nullptr)
+        throw std::invalid_argument("Source Port not found");
+
+    port_sptr dst_port =
+        dst_node->get_port(dst_port_name);
+    if (dst_port == nullptr)
+        throw std::invalid_argument("Destination port not found");
+
+    return connect(node_endpoint(src_node, src_port),
+            node_endpoint(dst_node, dst_port));
+}
+
+
 void graph::add_orphan_node(node_sptr orphan_node)
 {
     _orphan_nodes.push_back(orphan_node);
@@ -88,8 +108,10 @@ edge_vector_t graph::find_edge(port_sptr port)
             ret.push_back(e);
     }
 
-    if (ret.empty())
-        throw std::invalid_argument("edge not found");
+    // TODO: check optional flag
+    // msg ports or optional streaming ports might not be connected
+    // if (ret.empty())
+    //     throw std::invalid_argument("edge not found");
 
     return ret;
 }
