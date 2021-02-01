@@ -30,6 +30,10 @@ edge_sptr graph::connect(const node_endpoint& src,
         b->set_alias(b->name() + std::to_string(b->id()));
     }
 
+    // Give the underlying port objects information about the connected ports
+    src.port()->connect(dst.port());
+    dst.port()->connect(src.port());
+
     return newedge;
 }
 

@@ -61,6 +61,20 @@ public:
         return unique_vector<block_sptr>(tmp);
     }
 
+    // includes domain adapters
+    node_vector_t calc_used_nodes()
+    {
+        node_vector_t tmp;
+
+        // Collect all blocks in the edge list
+        for (auto& p : edges()) {
+                tmp.push_back(p->src().node());
+                tmp.push_back(p->dst().node());
+        }
+
+        return unique_vector<node_sptr>(tmp);
+    }
+
     static std::shared_ptr<flat_graph> make_flat(graph_sptr g)
     {
         // FIXME: Actually do the flattening

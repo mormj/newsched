@@ -26,7 +26,7 @@ typedef std::shared_ptr<scheduler_message> scheduler_message_sptr;
 class scheduler_action : public scheduler_message
 {
 public:
-    scheduler_action(scheduler_action_t action, uint32_t blkid)
+    scheduler_action(scheduler_action_t action, uint32_t blkid = 0)
         : scheduler_message(scheduler_message_t::SCHEDULER_ACTION), _action(action)
     {
         set_blkid(int64_t{blkid});

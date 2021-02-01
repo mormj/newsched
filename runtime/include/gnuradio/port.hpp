@@ -1,10 +1,10 @@
 #pragma once
 
+#include <gnuradio/neighbor_interface.hpp>
 #include <gnuradio/parameter_types.hpp>
 #include <string>
 #include <typeindex>
 #include <typeinfo>
-#include <gnuradio/neighbor_interface.hpp>
 #include <utility>
 
 namespace gr {
@@ -25,18 +25,6 @@ enum class port_direction_t {
  */
 class port_base
 {
-protected:
-    std::string _name;
-    std::string _alias;
-    port_direction_t _direction;
-    param_type_t _data_type;
-    port_type_t _port_type;
-    int _index = -1;           // how does this get set??
-    std::vector<size_t> _dims; // allow for matrices to be sent naturally across ports
-    // empty dims refers to a scalar, dims=[n] same as vlen=n
-    int _multiplicity; // port can be replicated as in grc
-    size_t _datasize;
-    size_t _itemsize; // data size across all dims
 
 public:
     typedef std::shared_ptr<port_base> sptr;
@@ -101,6 +89,44 @@ public:
     size_t data_size() { return _datasize; }
     size_t itemsize() { return _itemsize; }
     std::vector<size_t> dims() { return _dims; }
+
+    void set_parent_intf(neighbor_interface_sptr intf) { _parent_intf = intf; }
+
+    void notify_connected_ports(scheduler_message_sptr msg)
+    {
+        for (auto& p : _connected_ports) {
+            p->push_message(msg);
+        }
+    }
+    // Inbound messages
+    void push_message(scheduler_message_sptr msg)
+    {
+        // push it to the queue of the owning thread
+        if (_parent_intf) {
+            _parent_intf->push_message(msg);
+        } else {
+            throw std::runtime_error("port has no parent interface");
+        }
+    }
+
+    void connect(sptr other_port) { _connected_ports.push_back(other_port); }
+
+protected:
+    std::string _name;
+    std::string _alias;
+    port_direction_t _direction;
+    param_type_t _data_type;
+    port_type_t _port_type;
+    int _index = -1;           // how does this get set??
+    std::vector<size_t> _dims; // allow for matrices to be sent naturally across ports
+    // empty dims refers to a scalar, dims=[n] same as vlen=n
+    int _multiplicity; // port can be replicated as in grc
+    size_t _datasize;
+    size_t _itemsize; // data size across all dims
+
+    std::vector<sptr> _connected_ports;
+    neighbor_interface_sptr _parent_intf = nullptr;
+
 };
 
 typedef port_base::sptr port_sptr;
@@ -182,15 +208,15 @@ typedef std::function<void(const std::string&)> message_port_callback_fcn;
  */
 class message_port : public port_base
 {
-private:                 // 
+private: //
     std::vector<std::pair<std::string, neighbor_interface_sptr>> _connected_interfaces;
     message_port_callback_fcn _callback_fcn;
-    
+
 public:
     typedef std::shared_ptr<message_port> sptr;
     static sptr make(const std::string& name,
-                                              const port_direction_t direction,
-                                              const int multiplicity = 1)
+                     const port_direction_t direction,
+                     const int multiplicity = 1)
     {
         return std::make_shared<message_port>(name, direction, multiplicity);
     }
@@ -201,21 +227,20 @@ public:
     {
     }
 
-    void register_callback(message_port_callback_fcn fcn) {_callback_fcn = fcn; }
+    void register_callback(message_port_callback_fcn fcn) { _callback_fcn = fcn; }
     void post(const std::string& msg) // should be a pmt, just pass strings for now
     {
-        for (auto intf : _connected_interfaces)
-        {
-            intf.get(1)->push_message(std::make_shared<msgport_message>(msg, -1));
+        for (auto intf : _connected_interfaces) {
+            // intf.get(1)->push_message(std::make_shared<msgport_message>(msg, -1));
         }
     }
     void add_interface(const std::string& port_name, neighbor_interface_sptr intf)
     {
         auto pair = std::pair<std::string, neighbor_interface_sptr>(port_name, intf);
-        // _connected_interfaces.push_back(std::make_pair<std::string,neighbor_interface_sptr>(port_name, intf));
+        // _connected_interfaces.push_back(std::make_pair<std::string,neighbor_interface_sptr>(port_name,
+        // intf));
         _connected_interfaces.push_back(pair);
     }
-
 };
 typedef message_port::sptr message_port_sptr;
 

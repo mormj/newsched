@@ -1,8 +1,6 @@
 #pragma once
 
 #include <gnuradio/scheduler_message.hpp>
-#include <map>
-#include <vector>
 
 namespace gr {
 
