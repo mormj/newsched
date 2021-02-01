@@ -39,4 +39,18 @@ private:
 
 typedef std::shared_ptr<scheduler_action> scheduler_action_sptr;
 
+class msgport_message : public scheduler_message
+{
+public:
+    msgport_message(const std::string& msg, uint32_t blkid)
+        : scheduler_message(scheduler_message_t::SCHEDULER_ACTION), _msg(msg)
+    {
+        set_blkid(int64_t{blkid});
+    }
+
+private:
+    std::string _msg;  // Replace with PMT or whatever other data formats
+};
+typedef std::shared_ptr<msgport_message> msgport_message_sptr;
+
 } // namespace gr

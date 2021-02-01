@@ -204,14 +204,16 @@ public:
     void register_callback(message_port_callback_fcn fcn) {_callback_fcn = fcn; }
     void post(const std::string& msg) // should be a pmt, just pass strings for now
     {
-        for (auto& intf : _connected_interfaces)
+        for (auto intf : _connected_interfaces)
         {
-            // intf->push_message;
+            intf.get(1)->push_message(std::make_shared<msgport_message>(msg, -1));
         }
     }
-    void add_interface(const std::string port_name, neighbor_interface_sptr intf)
+    void add_interface(const std::string& port_name, neighbor_interface_sptr intf)
     {
-        _connected_interfaces.push_back(std::make_pair<std::string,neighbor_interface_sptr>(port_name, intf));
+        auto pair = std::pair<std::string, neighbor_interface_sptr>(port_name, intf);
+        // _connected_interfaces.push_back(std::make_pair<std::string,neighbor_interface_sptr>(port_name, intf));
+        _connected_interfaces.push_back(pair);
     }
 
 };
