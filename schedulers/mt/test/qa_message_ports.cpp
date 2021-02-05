@@ -28,7 +28,10 @@ TEST(SchedulerMTMessagePassing, Forward)
     fg->validate();
 
     auto src_port = blk1->get_message_port("out");
-    src_port->post("message");
+    for (int i=0; i<10; i++)
+    {
+        src_port->post("message");
+    }
 
     fg->start();
     fg->wait();

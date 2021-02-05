@@ -36,7 +36,7 @@ if get_option('enable_testing')
                     newsched_scheduler_mt_dep,
                     gtest_dep], 
         install : true)
-    test('MT Message Port Tests', e)
+    # test('MT Message Port Tests', e)
 
 endif
 

@@ -2,6 +2,7 @@
 
 #include <gnuradio/neighbor_interface.hpp>
 #include <gnuradio/parameter_types.hpp>
+#include <algorithm>
 #include <string>
 #include <typeindex>
 #include <typeinfo>
@@ -91,7 +92,7 @@ public:
     size_t data_size() { return _datasize; }
     size_t itemsize() { return _itemsize; }
     std::vector<size_t> dims() { return _dims; }
-    sptr base() {return shared_from_this(); }
+    sptr base() { return shared_from_this(); }
 
     void set_parent_intf(neighbor_interface_sptr intf) { _parent_intf = intf; }
 
@@ -112,7 +113,17 @@ public:
         }
     }
 
-    void connect(sptr other_port) { _connected_ports.push_back(other_port); }
+    void connect(sptr other_port)
+    {
+
+        auto pred = [other_port](sptr p) { return (p == other_port); };
+        std::vector<sptr>::iterator it =
+            std::find_if(std::begin(_connected_ports), std::end(_connected_ports), pred);
+
+        if (it == std::end(_connected_ports)) {
+            _connected_ports.push_back(other_port); // only connect if it is not already in there
+        }
+    }
 
 protected:
     std::string _name;
@@ -129,7 +140,6 @@ protected:
 
     std::vector<sptr> _connected_ports;
     neighbor_interface_sptr _parent_intf = nullptr;
-
 };
 
 typedef port_base::sptr port_sptr;
@@ -201,7 +211,6 @@ public:
 };
 
 
-
 /**
  * @brief Message port class
  *
@@ -228,7 +237,7 @@ public:
         : port_base(name, direction, 0, port_type_t::MESSAGE, multiplicity)
     {
     }
-        
+
 
     message_port_callback_fcn callback() { return _callback_fcn; }
     void register_callback(message_port_callback_fcn fcn) { _callback_fcn = fcn; }
