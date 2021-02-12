@@ -1,10 +1,5 @@
 
 
-test_pmt_sources = ['test_pmt.cpp']
-
-incdir = include_directories('../include')
-executable('test_pmt', test_pmt_sources, include_directories : incdir, dependencies: [newsched_pmt_dep], install : false)
-
 # test_pmtf_sources = ['test_pmtf.cpp']
 # executable('test_pmtf', test_pmtf_sources, include_directories : incdir, dependencies: [newsched_pmtf_dep], install : false)
 
