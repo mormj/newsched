@@ -20,7 +20,7 @@ bool run_test(const int times, uint64_t nitems)
         std::map<std::string, pmt_sptr> starting_map;
 
         #if 1
-        for (int k = 0; k < nitems; k++) {
+        for (uint64_t k = 0; k < nitems; k++) {
             auto key = std::string("key" + std::to_string(k));
             auto value = pmt_scalar<int32_t>::make(k);
 

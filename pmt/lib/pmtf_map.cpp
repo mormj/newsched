@@ -16,7 +16,7 @@ std::map<std::string, pmt_sptr> pmt_map<std::string>::value() const
     std::map<std::string, pmt_sptr> ret;
     auto pmt = GetSizePrefixedPmt(_buf);
     auto entries = pmt->data_as_MapString()->entries();
-    for (int k=0; k<entries->size(); k++)
+    for (size_t k=0; k<entries->size(); k++)
     {
         ret[entries->Get(k)->key()->str()] = pmt_base::from_pmt(entries->Get(k)->value());       
     }

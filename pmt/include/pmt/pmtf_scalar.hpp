@@ -46,4 +46,110 @@ public:
 };
 
 
+#define IMPLEMENT_PMT_SCALAR(datatype, fbtype)                      \
+    template <>                                                     \
+    datatype pmt_scalar<datatype>::value()                          \
+    {                                                               \
+        auto pmt = GetSizePrefixedPmt(_fbb.GetBufferPointer());     \
+        return pmt->data_as_Scalar##fbtype()->value();              \
+    }                                                               \
+                                                                    \
+    template <>                                                     \
+    flatbuffers::Offset<void> pmt_scalar<datatype>::rebuild_data(   \
+        flatbuffers::FlatBufferBuilder& fbb)                        \
+    {                                                               \
+        Scalar##fbtype##Builder sb(fbb);                            \
+        auto val = value();                                         \
+        sb.add_value(val);                                          \
+        return sb.Finish().Union();                                 \
+    }                                                               \
+                                                                    \
+    template <>                                                     \
+    void pmt_scalar<datatype>::set_value(datatype val)              \
+    {                                                               \
+        Scalar##fbtype##Builder sb(_fbb);                           \
+        sb.add_value(val);                                          \
+        _data = sb.Finish().Union();                                \
+        build();                                                    \
+    }                                                               \
+                                                                    \
+    template <>                                                     \
+    pmt_scalar<datatype>::pmt_scalar(const datatype& val)           \
+        : pmt_base(Data::Scalar##fbtype)                            \
+    {                                                               \
+        set_value(val);                                             \
+    }                                                               \
+                                                                    \
+    template <>                                                     \
+    pmt_scalar<datatype>::pmt_scalar(const uint8_t* buf)            \
+        : pmt_base(Data::Scalar##fbtype)                            \
+    {                                                               \
+        auto data = GetPmt(buf)->data_as_Scalar##fbtype()->value(); \
+        set_value(data);                                            \
+    }                                                               \
+                                                                    \
+    template <>                                                     \
+    pmt_scalar<datatype>::pmt_scalar(const pmtf::Pmt* fb_pmt)       \
+        : pmt_base(Data::Scalar##fbtype)                            \
+    {                                                               \
+        auto data = fb_pmt->data_as_Scalar##fbtype()->value();      \
+        set_value(data);                                            \
+    }                                                               \
+                                                                    \
+    template class pmt_scalar<datatype>;
+
+
+#define IMPLEMENT_PMT_SCALAR_CPLX(datatype, fbtype)                    \
+    template <>                                                        \
+    datatype pmt_scalar<datatype>::value()                             \
+    {                                                                  \
+        auto pmt = GetSizePrefixedPmt(_fbb.GetBufferPointer());        \
+        return *((datatype*)(pmt->data_as_Scalar##fbtype()->value())); \
+    }                                                                  \
+                                                                       \
+    template <>                                                        \
+    flatbuffers::Offset<void> pmt_scalar<datatype>::rebuild_data(      \
+        flatbuffers::FlatBufferBuilder& fbb)                           \
+    {                                                                  \
+        Scalar##fbtype##Builder sb(fbb);                               \
+        auto val = value();                                            \
+        sb.add_value((fbtype*)&val);                                   \
+        return sb.Finish().Union();                                    \
+    }                                                                  \
+                                                                       \
+    template <>                                                        \
+    void pmt_scalar<datatype>::set_value(datatype val)                 \
+    {                                                                  \
+        Scalar##fbtype##Builder sb(_fbb);                              \
+        sb.add_value((fbtype*)&val);                                   \
+        _data = sb.Finish().Union();                                   \
+        build();                                                       \
+    }                                                                  \
+                                                                       \
+    template <>                                                        \
+    pmt_scalar<datatype>::pmt_scalar(const datatype& val)              \
+        : pmt_base(Data::Scalar##fbtype)                               \
+    {                                                                  \
+        set_value(val);                                                \
+    }                                                                  \
+                                                                       \
+    template <>                                                        \
+    pmt_scalar<datatype>::pmt_scalar(const uint8_t* buf)               \
+        : pmt_base(Data::Scalar##fbtype)                               \
+    {                                                                  \
+        auto data = GetPmt(buf)->data_as_Scalar##fbtype()->value();    \
+        set_value(*((const datatype*)data));                           \
+    }                                                                  \
+                                                                       \
+    template <>                                                        \
+    pmt_scalar<datatype>::pmt_scalar(const pmtf::Pmt* fb_pmt)          \
+        : pmt_base(Data::Scalar##fbtype)                               \
+    {                                                                  \
+        auto data = fb_pmt->data_as_Scalar##fbtype()->value();         \
+        set_value(*((const datatype*)data));                           \
+    }                                                                  \
+                                                                       \
+                                                                       \
+    template class pmt_scalar<datatype>;
+
 } // namespace pmtf
