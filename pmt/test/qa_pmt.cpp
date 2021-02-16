@@ -20,8 +20,12 @@ TEST(Pmt, BasicPmtTests)
     std::vector<int32_t> int_vec_val{ 5, 9, 23445, 63, -25 };
     auto int_pmt_vec = pmt_vector<int32_t>::make(int_vec_val);
     EXPECT_EQ(int_pmt_vec->value(), int_vec_val);
-    // EXPECT_EQ(int_pmt_vec, int_vec_val);
     EXPECT_EQ(int_pmt_vec->data_type(), Data::VectorInt32);
+
+    std::vector<std::complex<float>> cf_vec_val{ {0,1},{2,3},{4,5} };
+    auto cf_pmt_vec = pmt_vector<std::complex<float>>::make(cf_vec_val);
+    EXPECT_EQ(cf_pmt_vec->value(), cf_vec_val);
+    EXPECT_EQ(cf_pmt_vec->data_type(), Data::VectorComplex64);
 }
 
 TEST(Pmt, PmtStringTests)
