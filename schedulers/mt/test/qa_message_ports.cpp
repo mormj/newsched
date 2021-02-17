@@ -8,6 +8,8 @@
 #include <gnuradio/flowgraph.hpp>
 #include <gnuradio/schedulers/mt/scheduler_mt.hpp>
 
+#include <pmt/pmtf_string.hpp>
+
 using namespace gr;
 
 TEST(SchedulerMTMessagePassing, Forward)
@@ -30,7 +32,7 @@ TEST(SchedulerMTMessagePassing, Forward)
     auto src_port = blk1->get_message_port("out");
     for (int i=0; i<10; i++)
     {
-        src_port->post("message");
+        src_port->post(pmtf::pmt_string::make("message"));
     }
 
     fg->start();

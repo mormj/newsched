@@ -12,7 +12,7 @@ srcs = ['bm_pmt_dict_ref.cpp']
 executable('bm_pmt_dict_ref', 
     srcs, 
     include_directories : incdir, 
-    dependencies: [newsched_pmtf_dep,
+    dependencies: [pmtf_dep,
                    boost_dep], 
     install : true)
 
@@ -20,6 +20,6 @@ srcs = ['bm_pmt_dict_pack_unpack.cpp']
 executable('bm_pmt_dict_pack_unpack', 
     srcs, 
     include_directories : incdir, 
-    dependencies: [newsched_pmtf_dep,
+    dependencies: [pmtf_dep,
                    boost_dep], 
     install : true)
