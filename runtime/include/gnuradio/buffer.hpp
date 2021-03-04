@@ -4,7 +4,7 @@
 #include <functional>
 #include <memory>
 #include <vector>
-
+#include <mutex>
 namespace gr {
 
 /**
@@ -36,6 +36,9 @@ protected:
 
     void set_type(const std::string& type) { _type = type; }
     virtual ~buffer() {}
+
+    std::mutex _buf_mutex;
+    std::vector<tag_t> _tags;
 
 public:
     virtual void* read_ptr() = 0;
@@ -69,11 +72,35 @@ public:
      */
     virtual std::vector<tag_t> get_tags(unsigned int num_items)
     {
-        return std::vector<tag_t>{};
-    }; // not virtual just yet = 0;
+        std::scoped_lock guard(_buf_mutex);
 
-    virtual void add_tags(unsigned int num_items,
-                          std::vector<tag_t>& tags){}; // not virtual just yet = 0;
+        // Find all the tags from total_read to total_read+offset
+        std::vector<tag_t> ret;
+        for (auto& tag : _tags) {
+            if (tag.offset >= _total_read && tag.offset < _total_read + num_items) {
+                ret.push_back(tag);
+            }
+        }
+
+        return ret;
+    }
+
+
+    virtual void add_tags(unsigned int num_items, std::vector<tag_t>& tags)
+    {
+        std::scoped_lock guard(_buf_mutex);
+
+        for (auto tag : tags) {
+            if (tag.offset < _total_written - num_items ||
+                tag.offset >= _total_written) {
+
+            } else {
+                _tags.push_back(tag);
+            }
+        }
+    }
+
+    const std::vector<tag_t>& tags() const { return _tags; }
 
     /**
      * @brief Updates the read pointers of the buffer

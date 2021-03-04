@@ -143,30 +143,33 @@ graph_executor::run_one_iteration(std::vector<block_sptr> blocks)
                 for (auto p : b->input_stream_ports()) {
                     auto p_buf = _bufman->get_input_buffer(p);
 
-                    // Pass the tags according to TPP
-                    if (b->tag_propagation_policy() ==
-                        tag_propagation_policy_t::TPP_ALL_TO_ALL) {
-                        int output_port_index = 0;
-                        for (auto op : b->output_stream_ports()) {
-                            for (auto p_out_buf : _bufman->get_output_buffers(op)) {
-                                p_out_buf->add_tags(
-                                    work_output[output_port_index].n_produced,
-                                    work_input[input_port_index].tags);
-                            }
-                            output_port_index++;
-                        }
-                    } else if (b->tag_propagation_policy() ==
-                               tag_propagation_policy_t::TPP_ONE_TO_ONE) {
-                        int output_port_index = 0;
-                        for (auto op : b->output_stream_ports()) {
-                            if (output_port_index == input_port_index) {
+                    if (!work_input[input_port_index].tags.empty()) {
+                        // Pass the tags according to TPP
+                        if (b->tag_propagation_policy() ==
+                            tag_propagation_policy_t::TPP_ALL_TO_ALL) {
+                            int output_port_index = 0;
+                            for (auto op : b->output_stream_ports()) {
                                 for (auto p_out_buf : _bufman->get_output_buffers(op)) {
                                     p_out_buf->add_tags(
                                         work_output[output_port_index].n_produced,
                                         work_input[input_port_index].tags);
                                 }
+                                output_port_index++;
                             }
-                            output_port_index++;
+                        } else if (b->tag_propagation_policy() ==
+                                   tag_propagation_policy_t::TPP_ONE_TO_ONE) {
+                            int output_port_index = 0;
+                            for (auto op : b->output_stream_ports()) {
+                                if (output_port_index == input_port_index) {
+                                    for (auto p_out_buf :
+                                         _bufman->get_output_buffers(op)) {
+                                        p_out_buf->add_tags(
+                                            work_output[output_port_index].n_produced,
+                                            work_input[input_port_index].tags);
+                                    }
+                                }
+                                output_port_index++;
+                            }
                         }
                     }
 
@@ -177,7 +180,7 @@ graph_executor::run_one_iteration(std::vector<block_sptr> blocks)
 
                     p_buf->post_read(work_input[input_port_index].n_consumed);
                     GR_LOG_DEBUG(_debug_logger, ".");
-                    
+
                     p->notify_connected_ports(std::make_shared<scheduler_action>(
                         scheduler_action_t::NOTIFY_OUTPUT));
 
