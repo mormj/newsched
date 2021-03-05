@@ -100,13 +100,46 @@ public:
     }
 
     const std::vector<tag_t>& tags() const { return _tags; }
-    void add_tag(tag_t tag) { _tags.push_back(tag); }
+    void add_tag(tag_t tag)
+    {
+        std::scoped_lock guard(_buf_mutex);
+        _tags.push_back(tag);
+    }
     void add_tag(uint64_t offset,
                  pmtf::pmt_sptr key,
                  pmtf::pmt_sptr value,
                  pmtf::pmt_sptr srcid = nullptr)
     {
+        std::scoped_lock guard(_buf_mutex);
         _tags.emplace_back(offset, key, value, srcid);
+    }
+
+    void propagate_tags(std::shared_ptr<buffer> p_in_buf, int n_consumed)
+    {
+        std::scoped_lock guard(_buf_mutex);
+        for (auto& t : p_in_buf->tags()) {
+            // Propagate the tags that occurred in the processed window
+            if (t.offset >= p_in_buf->total_read() &&
+                t.offset < p_in_buf->total_read() + n_consumed) {
+                // std::cout << "adding tag" << std::endl;
+                _tags.push_back(t);
+            }
+        }
+    }
+
+    void prune_tags(int n_consumed)
+    {
+        std::scoped_lock guard(_buf_mutex);
+        auto t = std::begin(_tags);
+        while (t != std::end(_tags)) {
+            // Do some stuff
+            if (t->offset < total_read() + n_consumed) {
+                t = _tags.erase(t);
+                // std::cout << "removing tag" << std::endl;
+            } else {
+                ++t;
+            }
+        }
     }
 
     /**

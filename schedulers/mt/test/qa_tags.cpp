@@ -97,7 +97,9 @@ TEST(SchedulerMTTags, t3)
     fg->connect(ann4, 0, snk1, 0);
 
     auto sched = schedulers::scheduler_mt::make();
+    sched->add_block_group({src,head,ann0,ann1,ann2,ann3,ann4,snk0,snk1});
     fg->set_scheduler(sched);
+    
 
     fg->validate();
 
