@@ -1,9 +1,9 @@
 #include <gnuradio/vmcircbuf.hpp>
 
-#include "vmcircbuf_sysv_shm.hpp"
 #include "vmcircbuf_mmap_shm_open.hpp"
-#include <mutex>
+#include "vmcircbuf_sysv_shm.hpp"
 #include <cstring>
+#include <mutex>
 
 // Doubly mapped circular buffer class
 // For now, just do this as the sysv_shm flavor
@@ -25,6 +25,8 @@ buffer_sptr vmcirc_buffer::make(size_t num_items,
             return buffer_sptr(new vmcircbuf_sysv_shm(num_items, item_size));
         case vmcirc_buffer_type::MMAP_SHM:
             return buffer_sptr(new vmcircbuf_mmap_shm_open(num_items, item_size));
+        default:
+            throw std::runtime_error("Invalid vmcircbuf buffer_type");
         }
 
     } else {

@@ -3,8 +3,8 @@
 #include <gnuradio/tag.hpp>
 #include <functional>
 #include <memory>
-#include <vector>
 #include <mutex>
+#include <vector>
 namespace gr {
 
 /**
@@ -91,8 +91,7 @@ public:
         std::scoped_lock guard(_buf_mutex);
 
         for (auto tag : tags) {
-            if (tag.offset < _total_written - num_items ||
-                tag.offset >= _total_written) {
+            if (tag.offset < _total_written - num_items || tag.offset >= _total_written) {
 
             } else {
                 _tags.push_back(tag);
@@ -101,6 +100,14 @@ public:
     }
 
     const std::vector<tag_t>& tags() const { return _tags; }
+    void add_tag(tag_t tag) { _tags.push_back(tag); }
+    void add_tag(uint64_t offset,
+                 pmtf::pmt_sptr key,
+                 pmtf::pmt_sptr value,
+                 pmtf::pmt_sptr srcid = nullptr)
+    {
+        _tags.emplace_back(offset, key, value, srcid);
+    }
 
     /**
      * @brief Updates the read pointers of the buffer
@@ -146,6 +153,9 @@ public:
      * @return std::string
      */
     std::string type() { return _type; }
+
+    uint64_t total_written() const { return _total_written; }
+    uint64_t total_read() const { return _total_read; }
 };
 
 typedef std::shared_ptr<buffer> buffer_sptr;

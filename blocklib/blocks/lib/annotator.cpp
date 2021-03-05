@@ -55,18 +55,18 @@ annotator::annotator(uint64_t when,
 work_return_code_t annotator::work(std::vector<block_work_input>& work_input,
                                    std::vector<block_work_output>& work_output)
 {
-    auto in = (const float*)work_input[0].items;
-    auto out = (float*)work_output[0].items;
+    auto in = (const float*)work_input[0].buffer->read_ptr();
+    auto out = (float*)work_output[0].buffer->write_ptr();
 
     auto noutput_items = work_output[0].n_items;
 
     uint64_t abs_N = 0;
 
     for (unsigned i = 0; i < d_num_inputs; i++) {
-        abs_N = work_input[i].n_items_read;
+        abs_N = work_input[i].buffer->total_read();
 
         d_stored_tags.insert(
-            d_stored_tags.end(), work_input[i].tags.begin(), work_input[i].tags.end());
+            d_stored_tags.end(), work_input[i].buffer->tags().begin(), work_input[i].buffer->tags().end());
     }
 
     // Storing the current noutput_items as the value to the "noutput_items" key
@@ -75,7 +75,7 @@ work_return_code_t annotator::work(std::vector<block_work_input>& work_input,
 
     // Work does nothing to the data stream; just copy all inputs to outputs
     // Adds a new tag when the number of items read is a multiple of d_when
-    abs_N = work_output[0].n_items_written;
+    abs_N = work_output[0].buffer->total_written();
 
     for (int j = 0; j < noutput_items; j++) {
         // the min() is a hack to make sure this doesn't segfault if
@@ -85,7 +85,7 @@ work_return_code_t annotator::work(std::vector<block_work_input>& work_input,
         for (unsigned i = 0; i < d_num_outputs; i++) {
             if (abs_N % d_when == 0) {
                 auto value = pmtf::pmt_scalar<uint64_t>::make(d_tag_counter++);
-                work_output[i].tags.emplace_back(abs_N, key, value, srcid);
+                work_output[i].buffer->add_tag(abs_N, key, value, srcid);
             }
 
             // We don't really care about the data here

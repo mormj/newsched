@@ -4,8 +4,11 @@
 #include <cstdint>
 #include <vector>
 
+#include <gnuradio/buffer.hpp>
+
 namespace gr {
 
+#if 0
 /**
  * @brief Struct for passing all information needed for input data to block::work
  *
@@ -61,7 +64,37 @@ struct block_work_output {
     {
     }
 };
+#else
+/**
+ * @brief Struct for passing all information needed for input data to block::work
+ *
+ */
+struct block_work_input {
+    int n_items;
+    buffer_sptr buffer;
+    int n_consumed; // output the number of items that were consumed on the work() call
 
+    block_work_input(int n_items_, buffer_sptr p_buf_)
+        : n_items(n_items_), buffer(p_buf_), n_consumed(-1)
+    {
+    }
+};
+
+/**
+ * @brief Struct for passing all information needed for output data from block::work
+ *
+ */
+struct block_work_output {
+    int n_items;
+    buffer_sptr buffer;
+    int n_produced; // output the number of items that were consumed on the work() call
+
+    block_work_output(int _n_items, buffer_sptr p_buf_)
+        : n_items(_n_items), buffer(p_buf_), n_produced(-1)
+    {
+    }
+};
+#endif
 
 /**
  * @brief Enum for return codes from calls to block::work
