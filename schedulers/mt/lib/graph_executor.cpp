@@ -134,6 +134,7 @@ graph_executor::run_one_iteration(std::vector<block_sptr> blocks)
             if (ret == work_return_code_t::WORK_OK ||
                 ret == work_return_code_t::WORK_DONE) {
 
+                
 
                 int input_port_index = 0;
                 for (auto p : b->input_stream_ports()) {
@@ -146,16 +147,19 @@ graph_executor::run_one_iteration(std::vector<block_sptr> blocks)
                             int output_port_index = 0;
                             for (auto op : b->output_stream_ports()) {
                                 for (auto p_out_buf : _bufman->get_output_buffers(op)) {
+
+                                    auto xx = p_out_buf->propagate_tags(
+                                        p_buf, work_input[input_port_index].n_consumed);
+
                                     gr_log_info(
                                         _logger,
-                                        "propagating tags 1:1 for block {}/{} at {} "
+                                        "propagated {} tags 1:1 for block {}/{} at {} "
                                         "with n {}",
+                                        xx,
                                         b->alias(),
                                         input_port_index,
                                         p_buf->total_read(),
                                         work_input[input_port_index].n_consumed);
-                                    p_out_buf->propagate_tags(
-                                        p_buf, work_input[input_port_index].n_consumed);
                                 }
                                 output_port_index++;
                             }
@@ -167,16 +171,19 @@ graph_executor::run_one_iteration(std::vector<block_sptr> blocks)
                                     for (auto p_out_buf :
                                          _bufman->get_output_buffers(op)) {
 
+
+                                        auto xx = p_out_buf->propagate_tags(
+                                            p_buf,
+                                            work_input[input_port_index].n_consumed);
+
                                         gr_log_info(
                                             _logger,
-                                            "propagating tags A:A for block {}/{} at {} "
+                                            "propagated {} tags A:A for block {}/{} at {} "
                                             "with n {}",
+                                            xx,
                                             b->alias(),
                                             input_port_index,
                                             p_buf->total_read(),
-                                            work_input[input_port_index].n_consumed);
-                                        p_out_buf->propagate_tags(
-                                            p_buf,
                                             work_input[input_port_index].n_consumed);
                                     }
                                 }
@@ -186,12 +193,19 @@ graph_executor::run_one_iteration(std::vector<block_sptr> blocks)
                     }
 
 
-                    GR_LOG_DEBUG(_debug_logger,
+                    //GR_LOG_DEBUG(_debug_logger,
+                    gr_log_info(_logger,
                                  "post_read {} - {}",
                                  b->alias(),
                                  work_input[input_port_index].n_consumed);
 
-                    p_buf->prune_tags(work_input[input_port_index].n_consumed);
+                    int xx = p_buf->prune_tags(work_input[input_port_index].n_consumed);
+
+                    gr_log_info(_logger,
+                                 "pruned {} tags for block {}",
+                                 xx,
+                                 b->alias());
+
                     p_buf->post_read(work_input[input_port_index].n_consumed);
                     GR_LOG_DEBUG(_debug_logger, ".");
 
@@ -214,6 +228,7 @@ graph_executor::run_one_iteration(std::vector<block_sptr> blocks)
                                               work_output[output_port_index].n_produced);
                             GR_LOG_DEBUG(_debug_logger, ".");
                         }
+                        gr_log_info(_logger, "-- tags after work() for {}/{}: {}", b->alias(), j, p_buf->tags().size());
                         j++;
                     }
                     for (auto p_buf : _bufman->get_output_buffers(p)) {
@@ -223,12 +238,13 @@ graph_executor::run_one_iteration(std::vector<block_sptr> blocks)
                         //                     work_output[output_port_index].tags);
                         // }
 
-                        GR_LOG_DEBUG(_debug_logger,
+                        //GR_LOG_DEBUG(_debug_logger,
+                        GR_LOG_INFO(_logger,
                                      "post_write {} - {}",
                                      b->alias(),
                                      work_output[output_port_index].n_produced);
                         p_buf->post_write(work_output[output_port_index].n_produced);
-                        GR_LOG_DEBUG(_debug_logger, ".");
+                        // GR_LOG_DEBUG(_debug_logger, ".");
                     }
 
                     p->notify_connected_ports(std::make_shared<scheduler_action>(

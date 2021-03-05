@@ -18,6 +18,7 @@
 
 using namespace gr;
 
+#if 0
 TEST(SchedulerMTTags, OneToOne)
 {
     int N = 40000;
@@ -110,6 +111,7 @@ TEST(SchedulerMTTags, t1)
     EXPECT_EQ(tags3.size(), (size_t)8);
     EXPECT_EQ(tags4.size(), (size_t)8);
 }
+#endif
 
 TEST(SchedulerMTTags,t2)
 {
@@ -167,7 +169,7 @@ TEST(SchedulerMTTags,t2)
     EXPECT_EQ(tags4.size(), (size_t)12);
 
 }
-
+#if 0
 TEST(SchedulerMTTags, t3)
 {
     int N = 40000;
@@ -218,7 +220,7 @@ TEST(SchedulerMTTags, t3)
     EXPECT_EQ(tags3.size(), (size_t)8);
     EXPECT_EQ(tags4.size(), (size_t)8);
 }
-
+#endif
 
 #if 0 // TODO Rate Change Blocks
 TEST(SchedulerMTTags, t5)
